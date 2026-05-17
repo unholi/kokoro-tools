@@ -14,7 +14,7 @@ As for the software itself, I can open the files in vi and get a general idea of
 
 I make zero guarantees that this software will work outside my own environment. Use it at your own discretion. If things completely fall apart on your end, Claude Pro [https://claude.ai/upgrade] is relatively inexpensive for a one‑year subscription.
 
-** System Info **
+**System Info**
 ```
 CPU: AMD Ryzen 7 5700X 8-Core Processor
 Cores: 16 logical / 8 physical per socket
