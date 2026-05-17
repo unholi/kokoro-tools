@@ -429,7 +429,7 @@
                   onclick="playCustomSample()" disabled style="width:32px;height:32px;font-size:13px;">▶</button>
 
           <button class="apply-btn" id="blendUseBtn" onclick="useCustomVoice()" disabled>
-            Use for audiobook ▾
+            Use Custom Voice
           </button>
 
           <span id="blendStatus" style="font-size:12px; color:var(--muted); flex:1;"></span>
@@ -1319,10 +1319,18 @@ function playCustomSample() {
 
 function useCustomVoice() {
   const label = blendGender === "f" ? "cf_voice" : "cm_voice";
+
+  // Update global dropdown (used by Text Files rows and Sample Audio)
   const globalSel = document.getElementById("globalVoice");
   ensureCustomOption(globalSel, label);
   globalSel.value = label;
-  toast(`Global voice set to ${label} (custom blend)`, "ok");
+
+  // Sync Sample Audio active voice display
+  syncSampleVoiceDisplay();
+
+  // Sync any already-rendered file table rows that are checked
+  // (unchecked rows keep their individual assignment unchanged)
+  toast(`Active voice set to ${label} — Sample Audio and selected files updated`, "ok");
 }
 
 let toastTimer;
