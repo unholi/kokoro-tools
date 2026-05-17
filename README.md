@@ -24,13 +24,12 @@ RAM: 125Gi total / 105Gi available
   Sample Audio (~500 word paste)               :  ~30–45 seconds
   Single chapter (~100 lines / ~1,600 words)   :  ~60–90 seconds
   Full chapter  (~530 lines / ~14,000 words)   :  ~17–18 minutes
+
+On this hardware, performance scales roughly linearly about 1.5 seconds per 100 words.
 ```
 
 Processing is CPU-bound. A GPU-accelerated PyTorch install will
 significantly reduce generation times, particularly for long chapters.
-
-On this hardware, performance scales roughly linearly about 1.5 seconds 
-per 100 words.
 
 ---
 
