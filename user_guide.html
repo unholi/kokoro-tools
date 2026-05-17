@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kokoro Audiobook Studio — User Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #f7f4ee;
+    --surface:  #ffffff;
+    --border:   #e0d9ce;
+    --accent:   #c8860a;
+    --accent2:  #2a6b8a;
+    --danger:   #b94040;
+    --success:  #3a7a4a;
+    --text:     #1e1a14;
+    --muted:    #7a7060;
+    --code-bg:  #1e1a14;
+    --code-fg:  #e8c547;
+    --radius:   8px;
+    --font-head: 'Syne', sans-serif;
+    --font-body: 'Lora', serif;
+    --font-mono: 'DM Mono', monospace;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.75;
+  }
+
+  /* ── page noise texture ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 0;
+  }
+
+  /* ── layout ── */
+  .page-wrap {
+    position: relative; z-index: 1;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 24px 80px;
+  }
+
+  /* ── masthead ── */
+  .masthead {
+    border-bottom: 3px solid var(--text);
+    padding: 48px 0 32px;
+    margin-bottom: 48px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .masthead-title {
+    font-family: var(--font-head);
+    font-size: clamp(28px, 5vw, 48px);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -1px;
+  }
+  .masthead-title span { color: var(--accent); }
+  .masthead-sub {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 6px;
+  }
+  .back-btn {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 8px 16px;
+    border: 1.5px solid var(--text);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--text);
+    text-decoration: none;
+    transition: background .15s, color .15s;
+    white-space: nowrap;
+  }
+  .back-btn:hover { background: var(--text); color: var(--bg); }
+
+  /* ── TOC ── */
+  .toc {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 24px 28px;
+    margin-bottom: 48px;
+  }
+  .toc-title {
+    font-family: var(--font-head);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+  .toc ol { padding-left: 20px; }
+  .toc li { margin: 4px 0; }
+  .toc a {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--accent2);
+    text-decoration: none;
+  }
+  .toc a:hover { text-decoration: underline; }
+
+  /* ── sections ── */
+  section { margin-bottom: 56px; }
+
+  .section-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  h2 {
+    font-family: var(--font-head);
+    font-size: clamp(20px, 3vw, 28px);
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1.5px solid var(--border);
+  }
+  h3 {
+    font-family: var(--font-head);
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 28px 0 10px;
+  }
+
+  p { margin-bottom: 16px; }
+  p:last-child { margin-bottom: 0; }
+
+  /* ── callouts ── */
+  .callout {
+    padding: 16px 20px;
+    border-radius: var(--radius);
+    border-left: 4px solid;
+    margin: 20px 0;
+    font-size: 15px;
+  }
+  .callout.info  { background: #e8f4fb; border-color: var(--accent2); color: #1a3d50; }
+  .callout.warn  { background: #fdf3e3; border-color: var(--accent);  color: #5a3a00; }
+  .callout.alert { background: #fdecea; border-color: var(--danger);  color: #5a1a1a; }
+  .callout.tip   { background: #edf7ef; border-color: var(--success); color: #1a3a22; }
+  .callout strong { font-weight: 600; }
+
+  /* ── code ── */
+  pre {
+    background: var(--code-bg);
+    color: var(--code-fg);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.6;
+    padding: 20px 24px;
+    border-radius: var(--radius);
+    overflow-x: auto;
+    margin: 16px 0;
+    border: 1px solid #3a3520;
+  }
+  code {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    background: #ede8df;
+    color: #7a3010;
+    padding: 2px 6px;
+    border-radius: 3px;
+  }
+  pre code { background: none; color: inherit; padding: 0; }
+
+  /* ── file tree ── */
+  .file-tree {
+    background: var(--code-bg);
+    color: #c8d0d8;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.8;
+    padding: 20px 24px;
+    border-radius: var(--radius);
+    margin: 16px 0;
+    border: 1px solid #3a3520;
+  }
+  .file-tree .dir  { color: var(--code-fg); font-weight: 500; }
+  .file-tree .note { color: #7a8090; font-style: italic; }
+
+  /* ── table ── */
+  .tbl-wrap { overflow-x: auto; margin: 16px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  thead th {
+    font-family: var(--font-head);
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    background: var(--text);
+    color: var(--bg);
+    padding: 10px 14px;
+    text-align: left;
+  }
+  tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tbody tr:nth-child(even) { background: #f0ece4; }
+  tbody td:first-child { font-family: var(--font-mono); font-size: 13px; color: var(--accent2); white-space: nowrap; }
+
+  /* ── numbered steps ── */
+  .steps { counter-reset: step; list-style: none; padding: 0; margin: 16px 0; }
+  .steps li {
+    counter-increment: step;
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+    align-items: flex-start;
+  }
+  .steps li::before {
+    content: counter(step);
+    font-family: var(--font-head);
+    font-size: 13px;
+    font-weight: 800;
+    min-width: 28px; height: 28px;
+    background: var(--accent);
+    color: white;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  /* ── footer ── */
+  footer {
+    border-top: 1.5px solid var(--border);
+    padding-top: 32px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--muted);
+    text-align: center;
+    line-height: 2;
+  }
+  footer a { color: var(--accent2); }
+
+  /* ── credits card ── */
+  .credit-card {
+    background: var(--code-bg);
+    color: #c8d0d8;
+    border-radius: var(--radius);
+    padding: 28px 32px;
+    margin-top: 20px;
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .credit-logo {
+    font-family: var(--font-head);
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--code-fg);
+    letter-spacing: -1px;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+  .credit-body { flex: 1; min-width: 220px; }
+  .credit-body p { font-family: var(--font-body); font-size: 14px; color: #c0c8d0; margin-bottom: 10px; }
+  .credit-body a { color: var(--code-fg); }
+</style>
+</head>
+<body>
+<div class="page-wrap">
+
+  <!-- masthead -->
+  <div class="masthead">
+    <div>
+      <div class="masthead-title">Kokoro <span>Audiobook</span><br>Studio</div>
+      <div class="masthead-sub">User Guide &amp; Reference</div>
+    </div>
+    <a href="javascript:history.back()" class="back-btn">← Back to Studio</a>
+  </div>
+
+  <!-- TOC -->
+  <div class="toc">
+    <div class="toc-title">Contents</div>
+    <ol>
+      <li><a href="#intro">Introduction</a></li>
+      <li><a href="#kokoro">About Kokoro TTS</a></li>
+      <li><a href="#install">Installing Kokoro</a></li>
+      <li><a href="#structure">Application Structure</a></li>
+      <li><a href="#usage">Using the Studio</a>
+        <ol style="margin-top:4px;">
+          <li><a href="#usage-audition">Voice Audition</a></li>
+          <li><a href="#usage-blender">Voice Blender</a></li>
+          <li><a href="#usage-settings">Settings</a></li>
+          <li><a href="#usage-sample">Sample Audio</a></li>
+          <li><a href="#usage-files">Text Files</a></li>
+        </ol>
+      </li>
+      <li><a href="#troubleshooting">Troubleshooting</a></li>
+      <li><a href="#references">References &amp; Resources</a></li>
+      <li><a href="#credits">Credits</a></li>
+    </ol>
+  </div>
+
+  <!-- 1. Introduction -->
+  <section id="intro">
+    <div class="section-eyebrow">Section 1</div>
+    <h2>Introduction</h2>
+    <p>Kokoro Audiobook Studio is a locally-hosted web application that converts plain text files into spoken-word audio using the Kokoro TTS (text-to-speech) engine. It is designed for authors, hobbyists, and anyone who wants to produce audiobook-quality narration from their writing — entirely on their own hardware, with no internet connection required after initial setup, and no ongoing API costs.</p>
+    <p>The studio provides a browser-based interface where you can browse your chapter files, audition voices, blend custom voices, and launch conversion jobs — all from a single tab. Audio is produced as standard WAV files at 24 kHz that can be played, edited, or published with any audio software.</p>
+    <div class="callout info">
+      <strong>Who this is for:</strong> This guide assumes you are comfortable using a Linux terminal for setup. Once installed, the studio itself requires no command-line interaction for day-to-day use.
+    </div>
+  </section>
+
+  <!-- 2. About Kokoro -->
+  <section id="kokoro">
+    <div class="section-eyebrow">Section 2</div>
+    <h2>About Kokoro TTS</h2>
+    <p>Kokoro is an open-source, 82-million-parameter text-to-speech model developed by <a href="https://huggingface.co/hexgrad/Kokoro-82M" target="_blank">hexgrad</a> and published on Hugging Face. It is notable for producing high-quality, natural-sounding narration from a model small enough to run on a consumer CPU or GPU — no cloud service, no subscription, no data leaving your machine.</p>
+    <p>The model uses <code>espeak-ng</code> for grapheme-to-phoneme conversion (turning written text into phoneme sequences) and a neural acoustic model to synthesise speech from those phonemes. Voice characteristics are stored as small <code>.pt</code> tensor files that can be loaded, blended mathematically, and passed directly to the pipeline.</p>
+
+    <h3>How the Studio uses Kokoro</h3>
+    <p>The studio wraps Kokoro's Python API in a lightweight local web server. When you click <strong>Launch</strong>, the server writes a shell script and opens it in a terminal window — this means the full Kokoro pipeline (which loads PyTorch and model weights) runs in its own process, with live progress visible on screen, without blocking the browser UI.</p>
+    <p>Voice blending works by loading two <code>.pt</code> tensors and computing a weighted sum — for example, <code>0.6 × voice_A + 0.4 × voice_B</code> — then passing the resulting tensor directly to the pipeline as a raw embedding rather than a named voice. This bypasses any network lookup entirely.</p>
+  </section>
+
+  <!-- 3. Installing Kokoro -->
+  <section id="install">
+    <div class="section-eyebrow">Section 3</div>
+    <h2>Installing Kokoro</h2>
+    <div class="callout warn">
+      <strong>Platform note:</strong> These instructions are written for <strong>Ubuntu 24.04 / Pop!_OS 24.04</strong>. Package names and paths may differ on other distributions. Adjust <code>apt</code> commands for your package manager as needed.
+    </div>
+
+    <h3>Prerequisites</h3>
+    <ol class="steps">
+      <li>Python 3.10 or later. Check with <code>python3 --version</code>.</li>
+      <li><code>espeak-ng</code> — required by Kokoro's phonemiser:<br>
+        <pre>sudo apt install espeak-ng</pre>
+      </li>
+      <li>A working <code>pip</code>. If missing: <code>sudo apt install python3-pip</code></li>
+    </ol>
+
+    <h3>Create a virtual environment</h3>
+    <p>Installing Kokoro into a dedicated virtual environment keeps its dependencies isolated from your system Python. The studio expects the venv to live at <code>~/Downloads/kokoro/env1/</code> by default (this path is set in the <code>kokoro-studio</code> launcher script and can be changed).</p>
+    <pre>mkdir -p ~/Downloads/kokoro
+cd ~/Downloads/kokoro
+python3 -m venv env1
+source env1/bin/activate</pre>
+
+    <h3>Install Kokoro and dependencies</h3>
+    <pre># Core Kokoro package
+pip install kokoro
+
+# Audio I/O
+pip install soundfile
+
+# PyTorch — CPU-only build (smaller download, sufficient for most systems)
+pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+# Optional: GPU-accelerated build (much faster on NVIDIA cards)
+# pip install torch --index-url https://download.pytorch.org/whl/cu121</pre>
+
+    <h3>First run — download model weights</h3>
+    <p>The first time Kokoro runs it will download the model weights (~330 MB) and any voice <code>.pt</code> files from Hugging Face. This requires an internet connection once. All subsequent runs are fully offline.</p>
+    <pre>cd ~/Downloads/kokoro
+source env1/bin/activate
+python3 -c "from kokoro import KPipeline; KPipeline(lang_code='a')"
+# Wait for download to complete, then Ctrl-C</pre>
+
+    <h3>Pre-cache all voice files</h3>
+    <p>To download all 50+ voice files in one go while online:</p>
+    <pre>python3 - &lt;&lt;'EOF'
+from kokoro import KPipeline
+import re, os
+from pathlib import Path
+
+voices_txt = Path("~/.local/bin/kokoro-tools/voices.txt").expanduser()
+voices = []
+for line in voices_txt.read_text().splitlines():
+    line = line.strip()
+    if not line or line.lower().startswith("upload"):
+        continue
+    name = re.sub(r"\.pt$", "", os.path.basename(line), flags=re.I)
+    if re.match(r"^[a-z]{2}_[a-z0-9_]+$", name):
+        voices.append(name)
+
+pipeline = KPipeline(lang_code='a')
+for v in voices:
+    try:
+        next(iter(pipeline("test", voice=v, speed=1)))
+        print(f"cached: {v}")
+    except Exception as e:
+        print(f"failed: {v} — {e}")
+EOF</pre>
+
+    <h3>Lock to offline mode</h3>
+    <p>Once all voices are cached, prevent any accidental network calls:</p>
+    <pre>echo 'export HF_HUB_OFFLINE=1' >> ~/.bashrc
+source ~/.bashrc</pre>
+  </section>
+
+  <!-- 4. Application Structure -->
+  <section id="structure">
+    <div class="section-eyebrow">Section 4</div>
+    <h2>Application Structure</h2>
+    <div class="callout warn">
+      <strong>Ubuntu / Pop!_OS 24.04 note:</strong> All paths below use <code>~/.local/bin/kokoro-tools/</code> as the tools directory. This is the recommended location — it is already on <code>$PATH</code> for user-installed binaries on Ubuntu 24.04. If you use a different location, update the <code>VENV_ACTIVATE</code> path inside <code>kokoro-studio</code> accordingly.
+    </div>
+
+    <div class="file-tree">
+<span class="dir">~/.local/bin/kokoro-tools/</span>          <span class="note"># all studio files live here</span>
+├── <span class="dir">kokoro-studio</span>                       <span class="note"># shell launcher (chmod +x required)</span>
+├── serve.py                            <span class="note"># local HTTP server (port 7891)</span>
+├── kokoro_run.py                       <span class="note"># TTS worker — runs in terminal window</span>
+├── kokoro_ui.html                      <span class="note"># browser UI (served by serve.py)</span>
+├── kokoro_audiobook.py                 <span class="note"># standalone CLI batch converter</span>
+├── voice_sampler.py                    <span class="note"># generates native-language voice samples</span>
+├── voice_sampler_accented_english.py   <span class="note"># generates accented-English voice samples</span>
+├── voices.txt                          <span class="note"># list of all available .pt voice filenames</span>
+├── <span class="dir">voice_samples/</span>                      <span class="note"># WAV previews — native language</span>
+│   ├── af_bella.wav
+│   ├── bm_george.wav
+│   └── ...
+└── <span class="dir">voice_samples_accented_english/</span>     <span class="note"># WAV previews — accented English</span>
+    ├── bf_emma.wav
+    ├── cf_voice.wav                    <span class="note"># custom female blend (if created)</span>
+    ├── cm_voice.wav                    <span class="note"># custom male blend (if created)</span>
+    └── ...
+
+<span class="dir">~/Downloads/kokoro/</span>                     <span class="note"># Kokoro installation</span>
+└── <span class="dir">env1/</span>                               <span class="note"># Python virtual environment</span>
+    └── bin/activate
+
+<span class="dir">~/.cache/huggingface/hub/</span>               <span class="note"># auto-managed by Hugging Face</span>
+└── models--hexgrad--Kokoro-82M/
+    └── snapshots/&lt;hash&gt;/
+        ├── kokoro-v0_19.pth            <span class="note"># model weights (~330 MB)</span>
+        └── <span class="dir">voices/</span>                     <span class="note"># voice .pt tensors</span>
+            ├── af_bella.pt
+            ├── cm_voice.pt             <span class="note"># custom blend saved here</span>
+            └── ...
+
+<span class="dir">~/your-audiobook-project/</span>               <span class="note"># your working directory</span>
+├── Chapter_1.txt
+├── Chapter_2.txt
+└── <span class="dir">audiobook_output/</span>               <span class="note"># generated WAV files land here</span>
+    ├── Chapter_1.wav
+    ├── Chapter_2.wav
+    └── kokoro_session.log              <span class="note"># append-only conversion log</span>
+    </div>
+
+    <h3>Required files at a glance</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>File</th><th>Required?</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td>kokoro-studio</td><td>Yes</td><td>Activates venv and starts the server</td></tr>
+          <tr><td>serve.py</td><td>Yes</td><td>HTTP server — must be running for the UI to work</td></tr>
+          <tr><td>kokoro_run.py</td><td>Yes</td><td>Processes text files into WAV audio</td></tr>
+          <tr><td>kokoro_ui.html</td><td>Yes</td><td>The browser interface</td></tr>
+          <tr><td>voices.txt</td><td>Yes</td><td>Voice list used by samplers and UI</td></tr>
+          <tr><td>voice_sampler.py</td><td>Optional</td><td>Generates native-language voice previews</td></tr>
+          <tr><td>voice_sampler_accented_english.py</td><td>Optional</td><td>Generates accented-English voice previews</td></tr>
+          <tr><td>kokoro_audiobook.py</td><td>Optional</td><td>CLI-only batch conversion (no UI needed)</td></tr>
+          <tr><td>voice_samples/</td><td>Optional</td><td>Pre-generated previews for Voice Audition panel</td></tr>
+          <tr><td>voice_samples_accented_english/</td><td>Optional</td><td>Pre-generated accented previews</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 5. Using the Studio -->
+  <section id="usage">
+    <div class="section-eyebrow">Section 5</div>
+    <h2>Using the Studio</h2>
+
+    <h3>Starting the studio</h3>
+    <pre>cd ~/your-audiobook-project
+kokoro-studio</pre>
+    <p>This activates the Kokoro virtual environment, starts <code>serve.py</code> on port 7891, and opens <code>http://localhost:7891</code> in your default browser. The terminal window that launched the studio must remain open while you work — closing it stops the server.</p>
+    <p>The <strong>Kokoro Audiobook Studio</strong> header is pinned to the top of the page and stays visible as you scroll down through the panels. A <strong>? Help</strong> link in the header opens this guide in a new tab at any time.</p>
+
+    <h3 id="usage-audition">Voice Audition panel</h3>
+    <p>Click <strong>Voice Audition ▶ show</strong> to expand. Click any <strong>▶</strong> button next to a voice card to play its sample. Click <strong>■</strong> or click again to stop. Toggle between <strong>Native language</strong> and <strong>Accented English</strong> to hear non-English voices either in their native tongue or speaking English with their accent. The <strong>Accent</strong> and <strong>Gender</strong> filter rows are independent — gender selection persists as you switch accents. Click <strong>Use</strong> on any card to set that voice as the active global voice.</p>
+    <p>If no samples appear, use the <strong>⚙ Native language</strong> or <strong>⚙ Accented English</strong> buttons to generate them — a terminal window opens and processes all voices automatically. This only needs to be done once; samples are saved in <code>kokoro-tools/voice_samples/</code> and reused on every future launch.</p>
+    <div class="callout info">
+      <strong>Note:</strong> American (<code>af_</code> / <code>am_</code>) voices are intentionally excluded from the Accented English sample set — they are native English speakers and produce no accent effect.
+    </div>
+
+    <h3 id="usage-blender">Voice Blender panel</h3>
+    <p>Click <strong>Voice Blender ▶ show</strong> to expand. Select two voices, choose a gender for the output file (<code>cf_voice</code> for female, <code>cm_voice</code> for male), set the mix ratio using the percentage buttons (Voice 1 gets your chosen percentage; Voice 2 gets the remainder automatically), then click <strong>⚗ Blend Voices</strong>. Generation takes 20–40 seconds. Once complete, click <strong>▶</strong> to preview and <strong>Use for audiobook ▾</strong> to set the blended voice as the active selection.</p>
+    <div class="callout warn">
+      <strong>Blending rule:</strong> Only blend voices from the same language family — American with American, British with British, etc. Mixing voice families produces a PyTorch tensor shape error because the embeddings have different dimensions.
+    </div>
+
+    <h3 id="usage-settings">Settings</h3>
+    <p>The Settings panel sits between Voice Blender and Sample Audio and applies globally to all conversion operations.</p>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Setting</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td>Speed</td><td>Narration speed multiplier. 1.0× is normal; 0.9× is a slightly slower, more measured audiobook pace. Range: 0.5×–2.0×.</td></tr>
+          <tr><td>Language / Accent pipeline</td><td>Controls the phoneme processing pipeline. Use <strong>American English (a)</strong> for standard narration. Match to your voice's language family for non-English voices; mismatching causes degraded pronunciation.</td></tr>
+          <tr><td>Output folder</td><td>Where generated WAV files are saved, relative to your working directory. Defaults to <code>./audiobook_output</code>. Also used by Sample Audio for its output file.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 id="usage-sample">Sample Audio panel</h3>
+    <p>The Sample Audio panel is open by default and can be hidden with the <strong>▾ hide</strong> toggle. It lets you generate a short spoken test from any block of text using the currently active voice — useful for checking pronunciation, pacing, or how a specific passage will sound before committing to a full chapter conversion.</p>
+    <ol class="steps">
+      <li>Set the active voice using <strong>Use</strong> in the Voice Audition panel or <strong>Use for audiobook ▾</strong> in the Voice Blender. The active voice is displayed read-only in the grey bar at the top of the Sample Audio panel — it cannot be changed from within this panel.</li>
+      <li>Paste or type any text into the text box.</li>
+      <li>Click <strong>▶ Generate Audio</strong>. The audio is generated inline (no terminal window opens) and saved as <code>sample_audio.wav</code> in your configured output folder.</li>
+      <li>Click the <strong>▶</strong> play button to hear the result through the floating player. The play button activates only after a successful generation.</li>
+    </ol>
+    <div class="callout info">
+      <strong>Speed and language pipeline</strong> settings from the Settings panel are applied to Sample Audio generation as well. Adjust those before generating if needed.
+    </div>
+
+    <h3 id="usage-files">Text Files and converting chapters</h3>
+    <p>The Text Files panel lists every <code>.txt</code> file found in your current working directory, along with a line count and word count for each file (blank lines are excluded from the line count). The table refreshes automatically on load; click <strong>⟳ Refresh</strong> if you add files after launching the studio.</p>
+    <ol class="steps">
+      <li>Tick the checkboxes next to the chapters to convert. Use <strong>Select all</strong> or <strong>Deselect all</strong> for bulk selection.</li>
+      <li>Assign a voice per file using each row's dropdown, or use the <strong>Apply voice to all selected</strong> bar at the top to set one voice across all ticked files at once. Custom voices (<code>cf_voice</code> / <code>cm_voice</code>) appear at the top of each dropdown after being created.</li>
+      <li>Confirm Speed, Language pipeline, and Output folder in Settings.</li>
+      <li>Click <strong>▶ LAUNCH</strong>. A terminal window opens showing chunk-by-chunk progress. WAV files appear in your output folder as each chapter completes.</li>
+    </ol>
+
+    <h3>Session log</h3>
+    <p>Every conversion is appended to <code>kokoro_session.log</code> inside your output folder. Each entry records the timestamp, filename, voice, speed, output duration, and status — useful for replicating a specific result or auditing what was used for each chapter.</p>
+  </section>
+
+  <!-- 6. Troubleshooting -->
+  <section id="troubleshooting">
+    <div class="section-eyebrow">Section 6</div>
+    <h2>Troubleshooting</h2>
+
+    <h3>Terminal window opens and closes immediately</h3>
+    <div class="callout alert">
+      <strong>Symptom:</strong> Clicking Launch opens a terminal that disappears in under a second with no audio produced.
+    </div>
+    <p><strong>Cause:</strong> The terminal is finding a different Python than the one with Kokoro installed — typically <code>/usr/bin/python3</code> (system Python) instead of the virtualenv Python. The most common error is <code>ModuleNotFoundError: No module named 'numpy'</code> or similar.</p>
+    <p><strong>Fix:</strong> Ensure you launch the studio via the <code>kokoro-studio</code> script, not by running <code>python3 serve.py</code> directly. The launcher activates the venv first, so <code>serve.py</code> inherits the correct Python. Verify by checking the startup banner — it should show the venv path under <strong>Venv</strong>:</p>
+    <pre>Venv   : /home/yourname/Downloads/kokoro/env1
+Python : /home/yourname/Downloads/kokoro/env1/bin/python3</pre>
+    <p>If it shows <code>/usr/bin/python3</code>, edit <code>kokoro-studio</code> and update the <code>VENV_ACTIVATE</code> path to match your actual venv location.</p>
+
+    <h3>Permission denied when running kokoro-studio</h3>
+    <div class="callout alert">
+      <strong>Symptom:</strong> <code>bash: /home/user/.local/bin/kokoro-tools/kokoro-studio: Permission denied</code>
+    </div>
+    <p><strong>Fix:</strong> The execute bit is not set. Run:</p>
+    <pre>chmod +x ~/.local/bin/kokoro-tools/kokoro-studio</pre>
+
+    <h3>Cannot reach serve.py / UI shows ⚠ error</h3>
+    <p>The browser UI communicates with <code>serve.py</code> on <code>http://localhost:7891</code>. If the UI shows a connection error, check that:</p>
+    <ul style="padding-left:20px; margin-bottom:16px;">
+      <li>The terminal that launched <code>kokoro-studio</code> is still open</li>
+      <li>Nothing else is using port 7891 (<code>lsof -i :7891</code>)</li>
+      <li>You opened the browser <em>after</em> the server started (the launcher waits 1 second; on slow machines you may need to refresh)</li>
+    </ul>
+
+    <h3>Sample Audio play button does nothing after generating</h3>
+    <div class="callout alert">
+      <strong>Symptom:</strong> Clicking the ▶ play button in Sample Audio has no effect, or the floating player appears but produces no sound.
+    </div>
+    <p><strong>Cause 1 — generation failed silently:</strong> The play button only enables after a confirmed successful generation. If the status line shows an error, the WAV file was not written. Check the <code>serve.py</code> console for the underlying Python error.</p>
+    <p><strong>Cause 2 — stale session:</strong> The <code>sample_audio.wav</code> path is stored in memory by <code>serve.py</code>. If the server was restarted after generation, the path is lost. Re-generate the sample to restore playback.</p>
+    <p><strong>Cause 3 — output folder does not exist:</strong> If the configured output folder path is invalid or the directory could not be created, the file write fails silently. Check that the output folder field in Settings contains a valid path.</p>
+
+    <h3>Voice Blender fails with tensor shape error</h3>
+    <div class="callout alert">
+      <strong>Symptom:</strong> Blend fails with a PyTorch shape mismatch error in the serve.py console.
+    </div>
+    <p><strong>Cause:</strong> You are trying to blend voices from different language families (e.g. an American voice with a Japanese voice). Their embedding tensors have different shapes and cannot be added directly.</p>
+    <p><strong>Fix:</strong> Only blend voices with the same two-letter prefix group — American with American, British with British, etc. Cross-language blending is not supported by Kokoro's architecture.</p>
+
+    <h3>Custom voice (cm_voice / cf_voice) sounds like one voice only</h3>
+    <p>If the blend sounds identical to one of the source voices, the mix ratio is likely at an extreme (90%/10% or 10%/90%). Try a more balanced ratio such as 60%/40% or 50%/50% for a noticeable blend.</p>
+
+    <h3>Mispronounced character or place names</h3>
+    <p>Kokoro uses <code>espeak-ng</code> for phoneme conversion, which handles standard English well but often mispronounces invented or unusual proper nouns. The workaround is phonetic substitution directly in the source <code>.txt</code> file — write the name as it sounds rather than how it is spelled. Keep a substitution log so you can apply corrections consistently across all chapters.</p>
+
+    <h3>Curly quotes producing odd pauses or skipped words</h3>
+    <p>Word processors save "smart" curly quotes (<code>"</code> <code>"</code> <code>'</code> <code>'</code>) which can confuse the phonemiser. Convert all files to straight quotes before processing:</p>
+    <pre>sed -i "s/\u2018/'/g; s/\u2019/'/g; s/\u201C/\"/g; s/\u201D/\"/g" *.txt</pre>
+
+    <h3>Generated audio sounds like a "tin can" or has interference</h3>
+    <div class="callout tip">
+      <strong>Already fixed in current version.</strong> Earlier versions of the studio played two Audio objects simultaneously — the interference between them caused phase cancellation (the "tin can" effect). The current version uses a single <code>&lt;audio&gt;</code> element exclusively.
+    </div>
+
+    <h3>HF_HUB_OFFLINE causes errors after setting it</h3>
+    <p>If you set <code>HF_HUB_OFFLINE=1</code> but some voice <code>.pt</code> files were not cached before going offline, Kokoro will fail to load those voices. Either temporarily unset the variable and re-run with the missing voices while online, or manually copy the <code>.pt</code> files from another machine into the cache directory:</p>
+    <pre>~/.cache/huggingface/hub/models--hexgrad--Kokoro-82M/snapshots/&lt;hash&gt;/voices/</pre>
+  </section>
+
+  <!-- 7. References -->
+  <section id="references">
+    <div class="section-eyebrow">Section 7</div>
+    <h2>References &amp; Resources</h2>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Resource</th><th>URL</th></tr></thead>
+        <tbody>
+          <tr><td>Kokoro model (Hugging Face)</td><td><a href="https://huggingface.co/hexgrad/Kokoro-82M" target="_blank">huggingface.co/hexgrad/Kokoro-82M</a></td></tr>
+          <tr><td>Kokoro Python package (PyPI)</td><td><a href="https://pypi.org/project/kokoro/" target="_blank">pypi.org/project/kokoro</a></td></tr>
+          <tr><td>espeak-ng (phonemiser)</td><td><a href="https://github.com/espeak-ng/espeak-ng" target="_blank">github.com/espeak-ng/espeak-ng</a></td></tr>
+          <tr><td>PyTorch installation guide</td><td><a href="https://pytorch.org/get-started/locally/" target="_blank">pytorch.org/get-started/locally</a></td></tr>
+          <tr><td>Hugging Face Hub docs</td><td><a href="https://huggingface.co/docs/huggingface_hub" target="_blank">huggingface.co/docs/huggingface_hub</a></td></tr>
+          <tr><td>soundfile (audio I/O library)</td><td><a href="https://python-soundfile.readthedocs.io" target="_blank">python-soundfile.readthedocs.io</a></td></tr>
+          <tr><td>Audacity (free audio editor)</td><td><a href="https://www.audacityteam.org" target="_blank">audacityteam.org</a></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 8. Credits -->
+  <section id="credits">
+    <div class="section-eyebrow">Section 8</div>
+    <h2>Credits</h2>
+    <p>Kokoro Audiobook Studio was designed and built collaboratively between the user and Claude (Anthropic) over an extended development session. The application grew organically from a simple batch conversion script into a full browser-based studio through iterative conversation — each feature, bug fix, and refinement discussed, reasoned through, and implemented turn by turn.</p>
+
+    <div class="credit-card">
+      <div class="credit-logo">Claude</div>
+      <div class="credit-body">
+        <p><strong style="color:var(--code-fg);">Claude by Anthropic</strong> designed and wrote the application code for Kokoro Audiobook Studio, including the local HTTP server, browser UI, voice audition system, voice blender, session logging, terminal launcher, and all associated Python scripts.</p>
+        <p>Claude is an AI assistant built by Anthropic. It can help with writing, coding, analysis, research, creative projects, and much more — available via browser, mobile, and API.</p>
+        <p>
+          🌐 <a href="https://claude.ai" target="_blank">claude.ai</a> &nbsp;·&nbsp;
+          📖 <a href="https://docs.anthropic.com" target="_blank">docs.anthropic.com</a> &nbsp;·&nbsp;
+          🏢 <a href="https://www.anthropic.com" target="_blank">anthropic.com</a>
+        </p>
+      </div>
+    </div>
+
+    <h3 style="margin-top:28px;">Third-party components</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Component</th><th>Author / Maintainer</th><th>Licence</th></tr></thead>
+        <tbody>
+          <tr><td>Kokoro-82M model</td><td>hexgrad (Hugging Face)</td><td>Apache 2.0</td></tr>
+          <tr><td>kokoro Python package</td><td>hexgrad</td><td>Apache 2.0</td></tr>
+          <tr><td>PyTorch</td><td>Meta AI / PyTorch Foundation</td><td>BSD-style</td></tr>
+          <tr><td>soundfile</td><td>Bastian Bechtold</td><td>BSD 3-Clause</td></tr>
+          <tr><td>espeak-ng</td><td>espeak-ng contributors</td><td>GPL v3</td></tr>
+          <tr><td>Syne / DM Mono / Lora fonts</td><td>Google Fonts</td><td>OFL</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    Kokoro Audiobook Studio &nbsp;·&nbsp; Built with <a href="https://claude.ai" target="_blank">Claude</a> by Anthropic &nbsp;·&nbsp;
+    Running on <a href="https://huggingface.co/hexgrad/Kokoro-82M" target="_blank">Kokoro-82M</a> by hexgrad<br>
+    Ubuntu / Pop!_OS 24.04 &nbsp;·&nbsp; Fully offline after initial setup
+  </footer>
+
+</div>
+</body>
+</html>

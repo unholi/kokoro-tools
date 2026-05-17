@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kokoro Audiobook Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0d0f14;
+    --surface:   #13161e;
+    --surface2:  #1b1f2b;
+    --border:    #252a38;
+    --accent:    #e8c547;
+    --accent2:   #4fc3f7;
+    --danger:    #f06292;
+    --text:      #c5c9d4;
+    --muted:     #8a8f9e;
+    --success:   #69db7c;
+    --radius:    10px;
+    --font-head: 'Syne', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+  }
+
+  html, body { height:100%; background:var(--bg); color:var(--text); font-family:var(--font-mono); font-size:14px; line-height:1.6; }
+
+  body::before {
+    content:''; position:fixed; inset:0;
+    background-image: linear-gradient(rgba(232,197,71,.03) 1px,transparent 1px),
+                      linear-gradient(90deg,rgba(232,197,71,.03) 1px,transparent 1px);
+    background-size:40px 40px; pointer-events:none; z-index:0;
+  }
+
+  .shell { position:relative; z-index:1; max-width:1100px; margin:0 auto; padding:36px 24px 100px; }
+
+  /* header */
+  header { display:flex; align-items:flex-end; justify-content:space-between; border-bottom:1px solid var(--border); padding-bottom:20px; margin-bottom:32px; position:sticky; top:0; z-index:50; background:var(--bg); backdrop-filter:blur(12px); }
+  .logo { display:flex; flex-direction:column; gap:2px; }
+  .logo-wordmark { font-family:var(--font-head); font-size:28px; font-weight:800; letter-spacing:-.5px; color:var(--accent); line-height:1; }
+  .logo-sub { font-size:11px; color:var(--muted); letter-spacing:2px; text-transform:uppercase; }
+  .status-pill { display:flex; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--border); border-radius:999px; padding:6px 14px; font-size:12px; color:var(--muted); }
+  .status-dot { width:8px; height:8px; border-radius:50%; background:var(--success); box-shadow:0 0 8px var(--success); animation:pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  /* section label */
+  .section-label { font-family:var(--font-head); font-size:11px; font-weight:600; letter-spacing:3px; text-transform:uppercase; color:var(--accent); margin-bottom:12px; display:flex; align-items:center; gap:10px; }
+  .section-label::after { content:''; flex:1; height:1px; background:var(--border); }
+
+  /* card */
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px 24px; margin-bottom:20px; }
+
+  /* buttons */
+  .btn-sm { font-family:var(--font-mono); font-size:12px; padding:5px 12px; border-radius:6px; border:1px solid var(--border); background:var(--surface2); color:var(--text); cursor:pointer; transition:border-color .15s,color .15s; }
+  .btn-sm:hover { border-color:var(--accent); color:var(--accent); }
+
+  /* file table */
+  .file-toolbar { display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+  .file-count { margin-left:auto; font-size:12px; color:var(--muted); }
+
+  table { width:100%; border-collapse:collapse; }
+  thead th { font-family:var(--font-head); font-size:11px; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); text-align:left; padding:8px 12px; border-bottom:1px solid var(--border); }
+  thead th:first-child { width:48px; text-align:center; }
+  thead th:nth-child(3) { width:320px; }
+
+  tbody tr { transition:background .12s; }
+  tbody tr:hover { background:var(--surface2); }
+  tbody tr.selected { background:rgba(232,197,71,.06); }
+  tbody td { padding:10px 12px; border-bottom:1px solid rgba(255,255,255,.04); vertical-align:middle; }
+  tbody td:first-child { text-align:center; }
+
+  .filename { font-size:13px; color:var(--text); display:flex; align-items:center; gap:8px; cursor:pointer; }
+  .file-icon { color:var(--accent2); font-size:11px; }
+
+  .voice-sel { width:140px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; color:var(--text); font-family:var(--font-mono); font-size:12px; padding:5px 8px; cursor:pointer; transition:border-color .15s; }
+  .voice-sel:focus { outline:none; border-color:var(--accent); }
+
+  input[type=checkbox] { appearance:none; width:18px; height:18px; border:2px solid var(--border); border-radius:4px; background:var(--surface2); cursor:pointer; transition:border-color .15s,background .15s; position:relative; display:inline-block; vertical-align:middle; }
+  input[type=checkbox]:checked { background:var(--accent); border-color:var(--accent); }
+  input[type=checkbox]:checked::after { content:''; position:absolute; left:4px; top:1px; width:6px; height:10px; border:2px solid var(--bg); border-top:none; border-left:none; transform:rotate(45deg); }
+
+  .empty-state { padding:40px 0; text-align:center; color:var(--muted); font-size:13px; }
+  .empty-state .icon { font-size:32px; margin-bottom:10px; }
+
+  /* global voice row */
+  .global-voice-row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:16px; padding:12px 16px; background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius); }
+  .global-voice-row label { font-size:12px; color:var(--muted); white-space:nowrap; }
+  .global-voice-row select { flex:1; min-width:220px; background:var(--surface); border:1px solid var(--border); border-radius:6px; color:var(--text); font-family:var(--font-mono); font-size:13px; padding:7px 10px; cursor:pointer; }
+  .global-voice-row select:focus { outline:none; border-color:var(--accent); }
+  .apply-btn { font-family:var(--font-mono); font-size:12px; padding:7px 14px; border-radius:6px; border:1px solid var(--accent2); background:transparent; color:var(--accent2); cursor:pointer; transition:background .15s; white-space:nowrap; }
+  .apply-btn:hover { background:rgba(79,195,247,.1); }
+
+  /* play button */
+  .play-btn { display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:50%; border:1px solid var(--border); background:var(--surface2); color:var(--muted); font-size:10px; cursor:pointer; transition:border-color .15s,color .15s,background .15s; flex-shrink:0; }
+  .play-btn:hover:not(:disabled) { border-color:var(--accent); color:var(--accent); }
+  .play-btn:disabled { opacity:.3; cursor:not-allowed; }
+  .play-btn.playing { border-color:var(--success); color:var(--success); background:rgba(105,219,124,.12); }
+
+  .use-btn { font-family:var(--font-mono); font-size:10px; padding:4px 8px; border-radius:4px; border:1px solid var(--border); background:transparent; color:var(--muted); cursor:pointer; white-space:nowrap; transition:border-color .15s,color .15s; flex-shrink:0; }
+  .use-btn:hover { border-color:var(--accent); color:var(--accent); }
+
+  /* settings */
+  .settings-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:16px; }
+  .field { display:flex; flex-direction:column; gap:6px; }
+  .field label { font-size:11px; color:var(--muted); letter-spacing:1px; text-transform:uppercase; }
+  .field input[type=range] { -webkit-appearance:none; width:100%; height:4px; border-radius:2px; background:var(--border); outline:none; cursor:pointer; }
+  .field input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:16px; height:16px; border-radius:50%; background:var(--accent); cursor:pointer; box-shadow:0 0 6px rgba(232,197,71,.5); }
+  .field select, .field input[type=text] { background:var(--surface2); border:1px solid var(--border); border-radius:6px; color:var(--text); font-family:var(--font-mono); font-size:13px; padding:8px 10px; width:100%; transition:border-color .15s; }
+  .field select:focus, .field input[type=text]:focus { outline:none; border-color:var(--accent); }
+  .range-display { display:flex; justify-content:space-between; font-size:11px; color:var(--muted); margin-top:2px; }
+  .range-val { font-size:13px; color:var(--accent); font-weight:500; }
+
+  /* ── VOICE AUDITION collapsible ── */
+  #auditionDetails > summary { list-style:none; outline:none; }
+  #auditionDetails > summary::-webkit-details-marker { display:none; }
+  #auditionDetails > summary .section-label { cursor:pointer; }
+  #auditionDetails > summary .section-label:hover #auditionChevron { color:var(--accent); }
+
+  .audition-toolbar { display:flex; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+  .audition-toolbar .section-label { margin-bottom:0; flex:none; }
+
+  .mode-toggle { display:flex; border:1px solid var(--border); border-radius:6px; overflow:hidden; flex-shrink:0; }
+  .mode-btn { font-family:var(--font-mono); font-size:11px; padding:5px 12px; background:var(--surface2); color:var(--muted); border:none; cursor:pointer; transition:background .15s,color .15s; white-space:nowrap; }
+  .mode-btn.active { background:var(--accent); color:var(--bg); font-weight:500; }
+
+  .audition-filters { display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin-bottom:12px; }
+  .filter-btn { font-family:var(--font-mono); font-size:11px; padding:4px 10px; border-radius:4px; border:1px solid var(--border); background:var(--surface2); color:var(--muted); cursor:pointer; transition:border-color .15s,color .15s; }
+  .filter-btn.active { border-color:var(--accent2); color:var(--accent2); }
+
+  .voice-grid { 
+    display:block;
+    max-height: calc(15 * 32px + 40px);
+    overflow-y: auto;
+    border:1px solid var(--border);
+    border-radius:6px;
+  }
+  
+  .voice-grid::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .voice-grid::-webkit-scrollbar-track {
+    background: var(--surface2);
+    border-radius: 4px;
+  }
+  
+  .voice-grid::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 4px;
+  }
+  
+  .voice-grid::-webkit-scrollbar-thumb:hover {
+    background: var(--muted);
+  }
+  
+  .voice-grid-header {
+    display:grid;
+    grid-template-columns: 1fr 80px 80px 60px 60px;
+    gap:12px;
+    padding:8px 12px;
+    background:var(--surface2);
+    border-bottom:1px solid var(--border);
+    font-size:10px;
+    font-weight:600;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:.5px;
+    margin-bottom:0;
+    position:sticky;
+    top:0;
+    z-index:10;
+  }
+
+  .voice-row {
+    display:grid;
+    grid-template-columns: 1fr 80px 80px 60px 60px;
+    gap:12px;
+    padding:8px 12px;
+    border-bottom:1px solid var(--border);
+    align-items:center;
+    transition:background .12s;
+  }
+
+  .voice-row:last-child {
+    border-bottom:1px solid var(--border);
+  }
+
+  .voice-row:hover {
+    background:rgba(232,197,71,.04);
+  }
+
+  .voice-row.playing {
+    background:rgba(105,219,124,.08);
+  }
+
+  .voice-row.no-sample {
+    opacity:.5;
+  }
+
+  .voice-row.playing-card {
+    background:rgba(105,219,124,.08);
+  }
+
+  .voice-info {
+    display:flex;
+    align-items:center;
+    gap:6px;
+    min-width:0;
+  }
+
+  .voice-id {
+    font-size:12px;
+    font-weight:500;
+    color:var(--accent);
+    white-space:nowrap;
+    flex-shrink:0;
+  }
+
+  .voice-desc {
+    font-size:11px;
+    color:var(--muted);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+
+  .voice-tags {
+    display:flex;
+    flex-wrap:wrap;
+    gap:4px;
+  }
+
+  .tag {
+    display:inline-block;
+    font-size:9px;
+    padding:2px 6px;
+    border-radius:3px;
+    white-space:nowrap;
+  }
+
+  .tag.female { background:rgba(240,98,146,.15); color:#f48fb1; }
+  .tag.male   { background:rgba(79,195,247,.12); color:var(--accent2); }
+  .tag.lang   { background:rgba(105,219,124,.1); color:var(--success); }
+
+  /* now-playing bar */
+  #nowPlaying { display:none; align-items:center; gap:10px; padding:10px 16px; margin-bottom:12px; background:rgba(105,219,124,.07); border:1px solid rgba(105,219,124,.25); border-radius:8px; font-size:12px; }
+  #nowPlaying.visible { display:flex; }
+  .np-dot { width:8px; height:8px; border-radius:50%; background:var(--success); animation:pulse 1s ease-in-out infinite; flex-shrink:0; }
+  #nowPlaying audio { flex:1; height:28px; min-width:0; }
+  audio { accent-color:var(--accent); }
+
+  /* launch bar */
+  .launch-bar { position:sticky; bottom:0; z-index:10; background:rgba(13,15,20,.93); backdrop-filter:blur(12px); border-top:1px solid var(--border); padding:16px 24px; display:flex; align-items:center; gap:16px; margin:0 -24px; }
+  .launch-summary { font-size:12px; color:var(--muted); flex:1; }
+  .launch-summary span { color:var(--accent); font-weight:500; }
+  .btn-launch { font-family:var(--font-head); font-size:15px; font-weight:700; letter-spacing:1px; padding:12px 36px; border-radius:8px; border:none; background:var(--accent); color:var(--bg); cursor:pointer; transition:transform .1s,box-shadow .1s; box-shadow:0 0 20px rgba(232,197,71,.3); white-space:nowrap; }
+  .btn-launch:hover { transform:translateY(-1px); box-shadow:0 4px 28px rgba(232,197,71,.5); }
+  .btn-launch:active { transform:translateY(0); }
+  .btn-launch:disabled { opacity:.35; cursor:not-allowed; transform:none; box-shadow:none; }
+
+  /* toast */
+  #toast { position:fixed; bottom:80px; right:24px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:12px 18px; font-size:13px; color:var(--text); box-shadow:0 8px 32px rgba(0,0,0,.5); transform:translateX(120%); transition:transform .3s cubic-bezier(.34,1.56,.64,1); z-index:100; max-width:320px; }
+  #toast.show { transform:translateX(0); }
+  #toast.ok  { border-color:var(--success); }
+  #toast.err { border-color:var(--danger); }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- header -->
+  <header>
+    <div class="logo">
+      <div class="logo-wordmark">KOKORO</div>
+      <div class="logo-sub">Audiobook Studio</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px; position:relative;">
+      <a href="user_guide.html" target="_blank"
+         style="font-family:var(--font-mono);font-size:11px;color:var(--muted);
+                text-decoration:none;border:1px solid var(--border);border-radius:4px;
+                padding:4px 10px;transition:border-color .15s,color .15s;"
+         onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
+         onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">? Help</a>
+      <div class="status-pill">
+        <div class="status-dot"></div>
+        <span>connected · localhost:7891</span>
+      </div>
+      
+      <!-- Floating Voice Player -->
+      <div id="floatingPlayer" style="display:none; position:absolute; top:100%; right:0; margin-top:12px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:12px; width:280px; box-shadow:0 8px 32px rgba(0,0,0,.3); z-index:100;">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+          <div class="np-dot"></div>
+          <span id="fpLabel" style="color:var(--success); font-size:11px; font-weight:500; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Now playing</span>
+          <button onclick="stopAudio()" style="background:none; border:none; color:var(--muted); cursor:pointer; padding:0; width:16px; height:16px; display:flex; align-items:center; justify-content:center; font-size:12px;">✕</button>
+        </div>
+        <audio id="fpAudio" controls style="width:100%; height:24px;"></audio>
+      </div>
+    </div>
+  </header>
+
+  <!-- ══ VOICE AUDITION ══ -->
+  <details id="auditionDetails" style="margin-bottom:20px;">
+    <summary style="list-style:none; cursor:pointer; outline:none;">
+      <div class="section-label" style="margin-bottom:0; cursor:pointer; user-select:none;">
+        Voice Audition
+        <span id="auditionChevron" style="font-size:10px; color:var(--muted); margin-left:6px; letter-spacing:0;">▶ show</span>
+      </div>
+    </summary>
+
+    <div style="margin-top:14px;">
+      <div class="audition-toolbar">
+        <div class="mode-toggle">
+          <button class="mode-btn active" id="modeNative"   onclick="setMode('native')">Native language</button>
+          <button class="mode-btn"        id="modeAccented" onclick="setMode('accented')">Accented English</button>
+        </div>
+        <span style="font-size:11px;color:var(--muted);" id="modeNote">All voices · native tongue</span>
+        <div style="flex:1;"></div>
+        <span style="font-size:11px;color:var(--muted);white-space:nowrap;">Generate samples:</span>
+        <button class="btn-sm" id="genNativeBtn" onclick="generateSamples('native')"
+                title="Run voice_sampler.py — native language samples">
+          ⚙ Native language
+        </button>
+        <button class="btn-sm" id="genAccentedBtn" onclick="generateSamples('accented')"
+                title="Run voice_sampler_accented_english.py — accented English samples">
+          ⚙ Accented English
+        </button>
+        <span id="genSamplesStatus" style="font-size:11px; color:var(--muted);"></span>
+      </div>
+      <div class="audition-filters">
+        <span style="font-size:11px;color:var(--muted);flex-shrink:0;">Accent:</span>
+        <button class="filter-btn nat active" data-n="all"        onclick="setNat(this,'all')">All</button>
+        <button class="filter-btn nat"        data-n="American"   onclick="setNat(this,'American')">🇺🇸 American</button>
+        <button class="filter-btn nat"        data-n="British"    onclick="setNat(this,'British')">🇬🇧 British</button>
+        <button class="filter-btn nat"        data-n="French"     onclick="setNat(this,'French')">🇫🇷 French</button>
+        <button class="filter-btn nat"        data-n="Spanish"    onclick="setNat(this,'Spanish')">🇪🇸 Spanish</button>
+        <button class="filter-btn nat"        data-n="Hindi"      onclick="setNat(this,'Hindi')">🇮🇳 Hindi</button>
+        <button class="filter-btn nat"        data-n="Italian"    onclick="setNat(this,'Italian')">🇮🇹 Italian</button>
+        <button class="filter-btn nat"        data-n="Japanese"   onclick="setNat(this,'Japanese')">🇯🇵 Japanese</button>
+        <button class="filter-btn nat"        data-n="Portuguese" onclick="setNat(this,'Portuguese')">🇧🇷 Portuguese</button>
+        <button class="filter-btn nat"        data-n="Mandarin"   onclick="setNat(this,'Mandarin')">🇨🇳 Mandarin</button>
+      </div>
+      <div class="audition-filters" style="margin-bottom:14px;">
+        <span style="font-size:11px;color:var(--muted);flex-shrink:0;">Gender:</span>
+        <button class="filter-btn gen active" data-g="all" onclick="setGen(this,'all')">All</button>
+        <button class="filter-btn gen"        data-g="F"   onclick="setGen(this,'F')">♀ Female</button>
+        <button class="filter-btn gen"        data-g="M"   onclick="setGen(this,'M')">♂ Male</button>
+      </div>
+
+      <div class="card" style="padding:16px; margin-bottom:8px;">
+        <div class="voice-grid" id="voiceGrid"></div>
+      </div>
+    </div>
+  </details>
+
+  <!-- ══ VOICE BLENDER ══ -->
+  <details id="blenderDetails" style="margin-bottom:20px;">
+    <summary style="list-style:none; outline:none;">
+      <div class="section-label" style="margin-bottom:0; cursor:pointer; user-select:none;">
+        Voice Blender
+        <span id="blenderChevron" style="font-size:10px; color:var(--muted); margin-left:6px;">▶ show</span>
+      </div>
+    </summary>
+
+    <div style="margin-top:14px;">
+      <div class="card" style="padding:20px 24px;">
+
+        <!-- Gender row -->
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:18px;">
+          <span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;width:80px;">Gender</span>
+          <div class="mode-toggle">
+            <button class="mode-btn active" id="blendGenderF" onclick="setBlendGender('f')">♀ Female</button>
+            <button class="mode-btn"        id="blendGenderM" onclick="setBlendGender('m')">♂ Male</button>
+          </div>
+          <span style="font-size:11px;color:var(--muted);" id="blendGenderNote">Output: cf_voice</span>
+        </div>
+
+        <!-- Voice selectors -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:18px;">
+          <div class="field">
+            <label>Voice 1</label>
+            <select id="blendV1" class="field select" onchange="updateBlendPreview()">
+              <!-- populated by JS -->
+            </select>
+          </div>
+          <div class="field">
+            <label>Voice 2</label>
+            <select id="blendV2" class="field select" onchange="updateBlendPreview()">
+              <!-- populated by JS -->
+            </select>
+          </div>
+        </div>
+
+        <!-- Mix slider -->
+        <div style="margin-bottom:20px;">
+          <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px;">
+            <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Mix</label>
+            <span style="font-size:11px;color:var(--muted);" id="blendMixLabel">Voice 1: 60% · Voice 2: 40%</span>
+          </div>
+          <!-- step=10 in the select; we use a styled button group for divisible-by-10 feel -->
+          <div style="display:flex; gap:6px; flex-wrap:wrap;" id="mixButtons">
+            <!-- populated by JS: 10% 20% ... 90% -->
+          </div>
+          <div style="display:flex; justify-content:space-between; margin-top:10px;
+                      padding:10px 14px; background:var(--surface2);
+                      border:1px solid var(--border); border-radius:8px;
+                      font-size:12px;">
+            <span>Voice 1 &nbsp;<span id="bv1name" style="color:var(--accent);">—</span>&nbsp;
+                  <span id="bv1pct" style="color:var(--accent); font-weight:600;">60%</span></span>
+            <span style="color:var(--muted);">+</span>
+            <span>Voice 2 &nbsp;<span id="bv2name" style="color:var(--accent2);">—</span>&nbsp;
+                  <span id="bv2pct" style="color:var(--accent2); font-weight:600;">40%</span></span>
+          </div>
+        </div>
+
+        <!-- Action row -->
+        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+          <button onclick="runBlend()" id="blendBtn"
+                  style="font-family:var(--font-head); font-size:14px; font-weight:700;
+                         padding:10px 28px; border-radius:8px; border:none;
+                         background:var(--accent); color:var(--bg); cursor:pointer;
+                         box-shadow:0 0 16px rgba(232,197,71,.3);
+                         transition:transform .1s, box-shadow .1s;">
+            ⚗ Blend Voices
+          </button>
+
+          <button class="play-btn" id="blendPlayBtn" title="Play custom voice sample"
+                  onclick="playCustomSample()" disabled style="width:32px;height:32px;font-size:13px;">▶</button>
+
+          <button class="apply-btn" id="blendUseBtn" onclick="useCustomVoice()" disabled>
+            Use for audiobook ▾
+          </button>
+
+          <span id="blendStatus" style="font-size:12px; color:var(--muted); flex:1;"></span>
+        </div>
+
+      </div>
+    </div>
+  </details>
+
+  <!-- ══ SETTINGS ══ -->
+  <div class="section-label">Settings</div>
+  <div class="card">
+    <div class="settings-grid">
+
+      <div class="field">
+        <label>Speed</label>
+        <input type="range" id="speed" min="0.5" max="2.0" step="0.05" value="1.0"
+               oninput="document.getElementById('speedVal').textContent=parseFloat(this.value).toFixed(2)+'×'; updateCounts();">
+        <div class="range-display">
+          <span>0.5×</span><span class="range-val" id="speedVal">1.00×</span><span>2.0×</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Language / Accent pipeline</label>
+        <select id="langCode">
+          <option value="a">American English  (a)</option>
+          <option value="b">British English   (b)</option>
+          <option value="j">Japanese          (j)</option>
+          <option value="z">Mandarin          (z)</option>
+          <option value="f">French            (f)</option>
+          <option value="e">Spanish           (e)</option>
+          <option value="h">Hindi             (h)</option>
+          <option value="i">Italian           (i)</option>
+          <option value="p">Portuguese        (p)</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Output folder</label>
+        <input type="text" id="outputDir" value="./audiobook_out" oninput="updateCounts()">
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ SAMPLE AUDIO ══ -->
+  <details id="sampleAudioDetails" open style="margin-bottom:20px;">
+    <summary style="list-style:none; outline:none;">
+      <div class="section-label" style="margin-bottom:0; cursor:pointer; user-select:none;">
+        Sample Audio
+        <span id="sampleAudioChevron" style="font-size:10px; color:var(--muted); margin-left:6px;">▾ hide</span>
+      </div>
+    </summary>
+
+    <div style="margin-top:14px;">
+      <div class="card" style="padding:20px 24px;">
+
+        <!-- Active voice display -->
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;
+                    padding:10px 14px; background:var(--surface2);
+                    border:1px solid var(--border); border-radius:8px;">
+          <span style="font-size:11px; color:var(--muted); text-transform:uppercase;
+                       letter-spacing:1px; white-space:nowrap;">Active voice:</span>
+          <span id="sampleActiveVoice" style="font-size:13px; color:var(--accent);
+                font-weight:500; flex:1;">af_bella</span>
+          <span style="font-size:11px; color:var(--muted);">
+            (set via Use button in Voice Audition or Voice Blender)
+          </span>
+        </div>
+
+        <!-- Text input -->
+        <div class="field" style="margin-bottom:16px;">
+          <label>Text to speak</label>
+          <textarea id="sampleText"
+                    style="background:var(--surface2); border:1px solid var(--border);
+                           border-radius:6px; color:var(--text); font-family:var(--font-mono);
+                           font-size:13px; padding:10px 12px; width:100%; min-height:120px;
+                           resize:vertical; outline:none; transition:border-color .15s;"
+                    placeholder="Paste or type the text you want to hear spoken…"
+                    onfocus="this.style.borderColor='var(--accent)'"
+                    onblur="this.style.borderColor='var(--border)'"></textarea>
+        </div>
+
+        <!-- Action row -->
+        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+          <button onclick="generateSampleAudio()" id="sampleGenBtn"
+                  style="font-family:var(--font-head); font-size:14px; font-weight:700;
+                         padding:10px 28px; border-radius:8px; border:none;
+                         background:var(--accent); color:var(--bg); cursor:pointer;
+                         box-shadow:0 0 16px rgba(232,197,71,.3);
+                         transition:transform .1s, box-shadow .1s;">
+            ▶ Generate Audio
+          </button>
+
+          <button class="play-btn" id="samplePlayBtn"
+                  title="Play generated sample"
+                  onclick="playSampleAudio()"
+                  disabled style="width:32px; height:32px; font-size:13px;">▶</button>
+
+          <span id="sampleStatus" style="font-size:12px; color:var(--muted); flex:1;"></span>
+        </div>
+
+      </div>
+    </div>
+  </details>
+
+  <!-- ══ FILE LIST ══ -->
+  <div class="section-label">Text Files</div>
+  <div class="card" style="padding:16px 20px;">
+
+    <div class="global-voice-row">
+      <label>Apply voice to all selected:</label>
+      <select id="globalVoice"></select>
+      <button class="apply-btn" onclick="applyGlobalVoice()">Apply to selected ▾</button>
+    </div>
+
+    <div class="file-toolbar">
+      <button class="btn-sm" onclick="selectAll()">Select all</button>
+      <button class="btn-sm" onclick="selectNone()">Deselect all</button>
+      <button class="btn-sm" onclick="refreshFiles()">⟳ Refresh</button>
+      <span class="file-count" id="selCount">0 of 0 selected</span>
+    </div>
+
+    <table>
+      <thead><tr><th>✓</th><th>Filename</th><th style="width:70px;text-align:right;">Lines</th><th style="width:80px;text-align:right;">Words</th><th>Voice</th></tr></thead>
+      <tbody id="fileBody">
+        <tr><td colspan="5"><div class="empty-state"><div class="icon">⏳</div>Loading…</div></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+
+
+  <div style="height:80px;"></div>
+
+  <!-- launch bar -->
+  <div class="launch-bar">
+    <div class="launch-summary" id="launchSummary">Select files above, then launch conversion.</div>
+    <button class="btn-launch" id="launchBtn" onclick="launch()" disabled>▶ LAUNCH</button>
+  </div>
+
+</div>
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════
+// VOICE CATALOGUE
+// ═══════════════════════════════════════════
+const VOICES = [
+  ["af_alloy",      "F","American",  "Smooth · professional"],
+  ["af_aoede",      "F","American",  "Warm · storytelling"],
+  ["af_bella",      "F","American",  "Clear · balanced · narration"],
+  ["af_heart",      "F","American",  "Bright · energetic"],
+  ["af_jessica",    "F","American",  "Conversational · natural"],
+  ["af_kore",       "F","American",  "Confident · authoritative"],
+  ["af_nicole",     "F","American",  "Soft · intimate · ASMR-like"],
+  ["af_nova",       "F","American",  "Upbeat · youthful"],
+  ["af_river",      "F","American",  "Calm · meditative"],
+  ["af_sarah",      "F","American",  "Friendly · approachable"],
+  ["af_sky",        "F","American",  "Airy · light · cheerful"],
+  ["am_adam",       "M","American",  "Deep · authoritative"],
+  ["am_echo",       "M","American",  "Resonant · documentary"],
+  ["am_eric",       "M","American",  "Steady · reliable"],
+  ["am_fenrir",     "M","American",  "Bold · dramatic"],
+  ["am_liam",       "M","American",  "Casual · laid-back"],
+  ["am_michael",    "M","American",  "Warm · classic narrator"],
+  ["am_onyx",       "M","American",  "Rich · low · commanding"],
+  ["am_puck",       "M","American",  "Playful · quick · character"],
+  ["am_santa",      "M","American",  "Jovial · warm · character"],
+  ["bf_alice",      "F","British",   "Crisp · RP · formal"],
+  ["bf_emma",       "F","British",   "Warm · RP · natural"],
+  ["bf_isabella",   "F","British",   "Refined · elegant"],
+  ["bf_lily",       "F","British",   "Gentle · soft British"],
+  ["bm_daniel",     "M","British",   "Deep · BBC presenter"],
+  ["bm_fable",      "M","British",   "Expressive · storytelling"],
+  ["bm_george",     "M","British",   "Authoritative · classic"],
+  ["bm_lewis",      "M","British",   "Younger · conversational"],
+  ["ef_dora",       "F","Spanish",   "Warm · Castilian"],
+  ["em_alex",       "M","Spanish",   "Neutral · Latin"],
+  ["em_santa",      "M","Spanish",   "Jolly · character"],
+  ["ff_siwis",      "F","French",    "Smooth · Parisian"],
+  ["hf_alpha",      "F","Hindi",     "Clear · Indian English"],
+  ["hf_beta",       "F","Hindi",     "Soft · Indian English"],
+  ["hm_omega",      "M","Hindi",     "Deep · Indian English"],
+  ["hm_psi",        "M","Hindi",     "Measured · Indian English"],
+  ["if_sara",       "F","Italian",   "Melodic · warm"],
+  ["im_nicola",     "M","Italian",   "Resonant · Italian"],
+  ["jf_alpha",      "F","Japanese",  "Clear · neutral"],
+  ["jf_gongitsune", "F","Japanese",  "Soft · fairy-tale"],
+  ["jf_nezumi",     "F","Japanese",  "Delicate · character"],
+  ["jf_tebukuro",   "F","Japanese",  "Warm · storybook"],
+  ["jm_kumo",       "M","Japanese",  "Low · calm"],
+  ["pf_dora",       "F","Portuguese","Warm · Brazilian"],
+  ["pm_alex",       "M","Portuguese","Neutral · Brazilian"],
+  ["pm_santa",      "M","Portuguese","Jolly · character"],
+  ["zf_xiaobei",    "F","Mandarin",  "Bright · youthful"],
+  ["zf_xiaoni",     "F","Mandarin",  "Gentle · smooth"],
+  ["zf_xiaoxiao",   "F","Mandarin",  "Clear · standard"],
+  ["zf_xiaoyi",     "F","Mandarin",  "Warm · narrative"],
+];
+
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+const API      = "http://localhost:7891";
+let files      = [];
+let sampleMode   = "native";
+let filterNat    = "all";   // nationality / accent
+let filterGender = "all";   // F | M | all
+let samples      = { native: [], accented: [] };
+let currentVoiceId = null;
+let currentPlayBtn = null;
+
+// ═══════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════
+window.addEventListener("DOMContentLoaded", async () => {
+  // wire up the audition panel chevron label
+  const details  = document.getElementById("auditionDetails");
+  const chevron  = document.getElementById("auditionChevron");
+  details.addEventListener("toggle", () => {
+    if (details.open) {
+      chevron.textContent = "▾ hide";
+      if (!document.getElementById("voiceGrid").children.length) buildVoiceGrid();
+    } else {
+      chevron.textContent = "▶ show";
+      stopAudio();
+    }
+  });
+
+  await loadSampleManifest();
+  initBlender();
+  initSampleAudio();
+  populateGlobalSelect();
+  refreshFiles();
+});
+
+// ═══════════════════════════════════════════
+// SAMPLE MANIFEST  (from serve.py /api/samples)
+// ═══════════════════════════════════════════
+async function loadSampleManifest() {
+  try {
+    const res = await fetch(`${API}/api/samples`);
+    samples = await res.json();
+  } catch(e) {
+    samples = { native: [], accented: [] };
+  }
+}
+
+function hasSample(id) {
+  const list = sampleMode === "native" ? samples.native : samples.accented;
+  return list.includes(id);
+}
+
+// ═══════════════════════════════════════════
+// MODE / FILTER
+// ═══════════════════════════════════════════
+function setMode(mode) {
+  sampleMode = mode;
+  document.getElementById("modeNative").classList.toggle("active",   mode === "native");
+  document.getElementById("modeAccented").classList.toggle("active", mode === "accented");
+  document.getElementById("modeNote").textContent =
+    mode === "native" ? "All voices · native tongue"
+                      : "Foreign voices · speaking English";
+  stopAudio();
+  buildVoiceGrid();
+}
+
+function setNat(btn, val) {
+  filterNat = val;
+  document.querySelectorAll(".filter-btn.nat").forEach(b => b.classList.toggle("active", b === btn));
+  buildVoiceGrid();
+}
+
+function setGen(btn, val) {
+  filterGender = val;
+  document.querySelectorAll(".filter-btn.gen").forEach(b => b.classList.toggle("active", b === btn));
+  buildVoiceGrid();
+}
+
+function matchFilter(v) {
+  const natOk    = filterNat    === "all" || v[2] === filterNat;
+  const genderOk = filterGender === "all" || v[1] === filterGender;
+  return natOk && genderOk;
+}
+
+// ═══════════════════════════════════════════
+// VOICE GRID
+// ═══════════════════════════════════════════
+function buildVoiceGrid() {
+  const grid = document.getElementById("voiceGrid");
+  grid.innerHTML = "";
+  const visible = VOICES.filter(matchFilter);
+
+  if (!visible.length) {
+    grid.innerHTML = `<div style="color:var(--muted);font-size:13px;padding:20px;">No voices match this filter.</div>`;
+    return;
+  }
+
+  // Add header
+  const header = document.createElement("div");
+  header.className = "voice-grid-header";
+  header.innerHTML = `
+    <div>Voice</div>
+    <div>Gender</div>
+    <div>Accent</div>
+    <div></div>
+    <div></div>
+  `;
+  grid.appendChild(header);
+
+  visible.forEach(([id, gender, accent, desc]) => {
+    const has = hasSample(id);
+    const isF = gender === "F";
+
+    const row = document.createElement("div");
+    row.className = "voice-row" + (has ? "" : " no-sample");
+    row.id = `vc-${id}`;
+
+    // Info column - single line with ID and description
+    const info = document.createElement("div");
+    info.className = "voice-info";
+    info.innerHTML = `<div class="voice-id">${id}</div><span>−</span><div class="voice-desc">${desc}</div>`;
+
+    // Gender tag
+    const genderTag = document.createElement("span");
+    genderTag.className = `tag ${isF?'female':'male'}`;
+    genderTag.textContent = isF?'♀ Female':'♂ Male';
+
+    // Accent tag
+    const accentTag = document.createElement("span");
+    accentTag.className = "tag lang";
+    accentTag.textContent = accent;
+
+    // Play button
+    const pb = document.createElement("button");
+    pb.className = "play-btn";
+    pb.title     = has ? `Play ${id}` : "No sample cached";
+    pb.textContent = has ? "▶" : "–";
+    pb.disabled  = !has;
+    if (has) pb.onclick = (e) => { e.stopPropagation(); togglePlay(id, pb); };
+
+    // Use button
+    const useBtn = document.createElement("button");
+    useBtn.className = "use-btn";
+    useBtn.textContent = "Use";
+    useBtn.title = `Set global voice to ${id}`;
+    useBtn.onclick = () => {
+      document.getElementById("globalVoice").value = id;
+      toast(`Global voice → ${id}`, "ok");
+    };
+
+    row.appendChild(info);
+    row.appendChild(genderTag);
+    row.appendChild(accentTag);
+    row.appendChild(pb);
+    row.appendChild(useBtn);
+    grid.appendChild(row);
+  });
+}
+
+// ═══════════════════════════════════════════
+// AUDIO
+// ═══════════════════════════════════════════
+function togglePlay(id, btn) {
+  if (currentVoiceId === id) { stopAudio(); return; }
+  playVoice(id, btn, sampleMode);
+}
+
+function playVoice(id, btn, bucket) {
+  stopAudio();
+
+  const fpAudio = document.getElementById("fpAudio");
+  fpAudio.src   = `${API}/samples/${bucket}/${id}.wav`;
+
+  currentVoiceId = id;
+  currentPlayBtn = btn;
+
+  document.getElementById("fpLabel").textContent = `▶ ${id}`;
+  document.getElementById("floatingPlayer").style.display = "block";
+
+  const card = document.getElementById(`vc-${id}`);
+  if (card) card.classList.add("playing-card");
+  if (btn)  { btn.classList.add("playing"); btn.textContent = "■"; }
+
+  fpAudio.play().catch(() => {});
+  fpAudio.onended = () => clearPlayState();
+}
+
+function stopAudio() {
+  const fpAudio = document.getElementById("fpAudio");
+  fpAudio.pause();
+  fpAudio.removeAttribute("src");
+  fpAudio.load();  // abort any pending network request
+  document.getElementById("floatingPlayer").style.display = "none";
+  clearPlayState();
+}
+
+function clearPlayState() {
+  if (currentVoiceId) {
+    const card = document.getElementById(`vc-${currentVoiceId}`);
+    if (card) card.classList.remove("playing-card");
+  }
+  if (currentPlayBtn) { currentPlayBtn.classList.remove("playing"); currentPlayBtn.textContent = "▶"; }
+  currentVoiceId = null; currentPlayBtn = null;
+}
+
+function previewGlobalVoice() {
+  const id = document.getElementById("globalVoice").value;
+  let bucket = samples.native.includes(id) ? "native"
+             : samples.accented.includes(id) ? "accented" : null;
+  if (!bucket) { toast(`No sample cached for ${id}`, "err"); return; }
+  
+  // Toggle: if already playing, stop it
+  if (currentVoiceId === id) { stopAudio(); return; }
+  
+  playVoice(id, null, bucket);
+}
+
+// ═══════════════════════════════════════════
+// GLOBAL SELECT + FILE TABLE
+// ═══════════════════════════════════════════
+function populateGlobalSelect() {
+  const sel = document.getElementById("globalVoice");
+  sel.addEventListener("change", () => syncSampleVoiceDisplay());
+  VOICES.forEach(([id, gender, accent, desc]) => {
+    const opt = document.createElement("option");
+    opt.value = id;
+    opt.textContent = `${id}  —  ${accent} ${gender} · ${desc}`;
+    sel.appendChild(opt);
+  });
+  sel.value = "af_bella";
+}
+
+function applyGlobalVoice() {
+  const v = document.getElementById("globalVoice").value;
+  files.forEach(f => { if (f.checked) f.voice = v; });
+  renderTable();
+  toast(`Applied ${v} to selected files`, "ok");
+}
+
+async function refreshFiles() {
+  try {
+    const res  = await fetch(`${API}/api/files`);
+    const data = await res.json();
+    files = data.map(d => ({ name: d.name, lines: d.lines, words: d.words, checked: false, voice: "af_bella" }));
+    renderTable(); updateCounts();
+  } catch(e) {
+    document.getElementById("fileBody").innerHTML =
+      `<tr><td colspan="5"><div class="empty-state"><div class="icon">⚠️</div>
+       Cannot reach serve.py at localhost:7891<br>
+       <span style="font-size:11px;color:var(--muted)">Run: python serve.py</span>
+       </div></td></tr>`;
+  }
+}
+
+// Custom voice IDs that exist outside the VOICES catalogue
+const CUSTOM_VOICE_IDS = ["cf_voice", "cm_voice"];
+
+function ensureCustomOption(sel, voiceId) {
+  // If voiceId is a custom voice and not yet in the select, prepend it
+  if (!CUSTOM_VOICE_IDS.includes(voiceId)) return;
+  if (sel.querySelector(`option[value="${voiceId}"]`)) return;
+  const opt = document.createElement("option");
+  opt.value = voiceId;
+  opt.textContent = voiceId;
+  opt.title = "Custom blended voice";
+  sel.insertBefore(opt, sel.firstChild);
+}
+
+function makeRowVoicePicker(idx, currentVoice) {
+  const wrap = document.createElement("div");
+  wrap.style.cssText = "display:flex;align-items:center;gap:6px;";
+
+  const sel = document.createElement("select");
+  sel.className = "voice-sel";
+
+  // Prepend custom voice option at top if this row is using one
+  ensureCustomOption(sel, currentVoice);
+
+  VOICES.forEach(([id, gender, accent, desc]) => {
+    const opt = document.createElement("option");
+    opt.value = id;
+    opt.textContent = id;
+    opt.title = `${accent} ${gender} · ${desc}`;
+    if (id === currentVoice) opt.selected = true;
+    sel.appendChild(opt);
+  });
+
+  // Set selection after all options are added
+  sel.value = currentVoice;
+
+  sel.addEventListener("change", e => { files[idx].voice = e.target.value; });
+
+  wrap.appendChild(sel);
+  return wrap;
+}
+
+function renderTable() {
+  const body = document.getElementById("fileBody");
+  if (!files.length) {
+    body.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="icon">📂</div>No .txt files</div></td></tr>`;
+    return;
+  }
+  body.innerHTML = "";
+  files.forEach((f, i) => {
+    const tr = document.createElement("tr");
+    tr.dataset.idx = i;
+    if (f.checked) tr.classList.add("selected");
+
+    const tdCk = document.createElement("td");
+    const ck   = document.createElement("input");
+    ck.type = "checkbox"; ck.checked = f.checked;
+    ck.addEventListener("change", e => {
+      files[i].checked = e.target.checked;
+      tr.classList.toggle("selected", e.target.checked);
+      updateCounts();
+    });
+    tdCk.appendChild(ck);
+
+    const tdName = document.createElement("td");
+    tdName.innerHTML = `<div class="filename"><span class="file-icon">TXT</span>${f.name}</div>`;
+    tdName.addEventListener("click", () => ck.click());
+
+    const tdLines = document.createElement("td");
+    tdLines.textContent = f.lines != null ? f.lines.toLocaleString() : "—";
+    tdLines.style.cssText = "text-align:right; color:var(--muted); font-size:12px;";
+
+    const tdWords = document.createElement("td");
+    tdWords.textContent = f.words != null ? f.words.toLocaleString() : "—";
+    tdWords.style.cssText = "text-align:right; color:var(--muted); font-size:12px;";
+
+    const tdVoice = document.createElement("td");
+    tdVoice.appendChild(makeRowVoicePicker(i, f.voice));
+
+    tr.appendChild(tdCk); tr.appendChild(tdName); tr.appendChild(tdLines);
+    tr.appendChild(tdWords); tr.appendChild(tdVoice);
+    body.appendChild(tr);
+  });
+}
+
+function selectAll()  { files.forEach(f => f.checked = true);  renderTable(); updateCounts(); }
+function selectNone() { files.forEach(f => f.checked = false); renderTable(); updateCounts(); }
+
+function updateCounts() {
+  const sel = files.filter(f => f.checked).length;
+  document.getElementById("selCount").textContent = `${sel} of ${files.length} selected`;
+  document.getElementById("launchBtn").disabled = sel === 0;
+  const out = document.getElementById("outputDir").value || "./audiobook_out";
+  document.getElementById("launchSummary").innerHTML = sel === 0
+    ? "Select files above, then launch conversion."
+    : `<span>${sel}</span> file${sel>1?'s':''} selected · output → <span>${out}</span>`;
+}
+
+
+// ═══════════════════════════════════════════
+// LAUNCH
+// ═══════════════════════════════════════════
+async function launch() {
+  const selected = files.filter(f => f.checked);
+  if (!selected.length) return;
+
+  const speed  = parseFloat(document.getElementById("speed").value);
+  const lang   = document.getElementById("langCode").value;
+  const output = document.getElementById("outputDir").value || "./audiobook_out";
+
+  const byVoice = {};
+  selected.forEach(f => { (byVoice[f.voice] = byVoice[f.voice]||[]).push(f.name); });
+
+  const btn = document.getElementById("launchBtn");
+  btn.disabled = true; btn.textContent = "⏳ LAUNCHING…";
+
+  const errors = [];
+  let launched  = 0;
+
+  for (const [voice, fileList] of Object.entries(byVoice)) {
+    try {
+      const res  = await fetch(`${API}/api/run`, {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ files:fileList, voice, speed, output_dir:output, lang_code:lang })
+      });
+      const data = await res.json();
+      if (data.started) {
+        launched++;
+        console.log(`[launch] OK voice=${voice} pid=${data.pid} method=${data.method}`);
+      } else {
+        const msg = data.error || "server returned started:false";
+        errors.push(`${voice}: ${msg}`);
+        console.error(`[launch] FAILED voice=${voice}`, data);
+      }
+    } catch(e) {
+      errors.push(`${voice}: cannot reach serve.py (${e.message})`);
+      console.error("[launch] fetch error", e);
+    }
+  }
+
+  btn.disabled = false; btn.textContent = "▶ LAUNCH";
+
+  if (errors.length === 0) {
+    toast(`▶ ${launched} job${launched>1?'s':''} launched — terminal window should appear`, "ok");
+  } else if (launched > 0) {
+    toast(`⚠ ${launched} launched, ${errors.length} failed — check serve.py console`, "err");
+    console.error("Launch errors:", errors);
+  } else {
+    toast(`✗ Launch failed: ${errors[0]}`, "err");
+    console.error("All launches failed:", errors);
+  }
+}
+
+// ═══════════════════════════════════════════
+// GENERATE SAMPLES
+// ═══════════════════════════════════════════
+async function generateSamples(mode) {
+  const btnId = mode === "native" ? "genNativeBtn" : "genAccentedBtn";
+  const btn   = document.getElementById(btnId);
+  const sta   = document.getElementById("genSamplesStatus");
+
+  btn.disabled    = true;
+  btn.textContent = "⏳ Launching…";
+  sta.textContent = `Starting ${mode} sampler — a terminal window will open…`;
+  sta.style.color = "var(--muted)";
+
+  try {
+    const res  = await fetch(`${API}/api/generate-samples?mode=${mode}`);
+    const data = await res.json();
+    if (data.ok) {
+      sta.textContent = `✓ ${mode} sampler running in terminal (PID ${data.pid}) — reload audition panel when done`;
+      sta.style.color = "var(--success)";
+      toast(`${mode} sampler launched — check terminal window`, "ok");
+    } else {
+      sta.textContent = `✗ ${data.error}`;
+      sta.style.color = "var(--danger)";
+      toast("Sampler failed to launch", "err");
+    }
+  } catch(e) {
+    sta.textContent = "✗ Cannot reach serve.py";
+    sta.style.color = "var(--danger)";
+  }
+
+  btn.disabled    = false;
+  btn.textContent = mode === "native" ? "⚙ Native language" : "⚙ Accented English";
+}
+
+// ═══════════════════════════════════════════
+// VOICE BLENDER
+// ═══════════════════════════════════════════
+// ═══════════════════════════════════════════
+// SAMPLE AUDIO
+// ═══════════════════════════════════════════
+let sampleAudioReady = false;
+
+function initSampleAudio() {
+  const det     = document.getElementById("sampleAudioDetails");
+  const chevron = document.getElementById("sampleAudioChevron");
+  det.addEventListener("toggle", () => {
+    chevron.textContent = det.open ? "▾ hide" : "▶ show";
+    if (det.open) syncSampleVoiceDisplay();
+  });
+}
+
+function syncSampleVoiceDisplay() {
+  const v = document.getElementById("globalVoice").value;
+  if (v) document.getElementById("sampleActiveVoice").textContent = v;
+}
+
+async function generateSampleAudio() {
+  const text = document.getElementById("sampleText").value.trim();
+  if (!text) { toast("Enter some text first", "err"); return; }
+
+  const voice  = document.getElementById("globalVoice").value;
+  const output = document.getElementById("outputDir").value || "./audiobook_output";
+  const speed  = parseFloat(document.getElementById("speed").value);
+  const lang   = document.getElementById("langCode").value;
+
+  const btn = document.getElementById("sampleGenBtn");
+  const sta = document.getElementById("sampleStatus");
+  btn.disabled    = true;
+  btn.textContent = "⏳ Generating…";
+  sta.textContent = "Running — please wait…";
+  sta.style.color = "var(--muted)";
+  sampleAudioReady = false;
+  document.getElementById("samplePlayBtn").disabled = true;
+
+  try {
+    const res  = await fetch(`${API}/api/sample-audio`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, voice, output_dir: output, speed, lang_code: lang })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      sta.textContent = `✓ Saved: ${data.filename}`;
+      sta.style.color = "var(--success)";
+      sampleAudioReady = true;
+      document.getElementById("samplePlayBtn").disabled = false;
+      toast("Sample audio generated", "ok");
+    } else {
+      sta.textContent = `✗ ${data.error}`;
+      sta.style.color = "var(--danger)";
+      toast("Generation failed — check serve.py console", "err");
+    }
+  } catch(e) {
+    sta.textContent = "✗ Cannot reach serve.py";
+    sta.style.color = "var(--danger)";
+    toast("Error: " + e.message, "err");
+  }
+
+  btn.disabled    = false;
+  btn.textContent = "▶ Generate Audio";
+}
+
+function playSampleAudio() {
+  if (!sampleAudioReady) return;
+  const url     = `${API}/api/sample-audio-file?t=${Date.now()}`;
+  const pb      = document.getElementById("samplePlayBtn");
+  const fpAudio = document.getElementById("fpAudio");
+
+  stopAudio();
+
+  fpAudio.src = url;
+
+  const player = document.getElementById("floatingPlayer");
+  player.style.display = "block";
+  const lbl = document.getElementById("fpLabel");
+  if (lbl) lbl.textContent = document.getElementById("globalVoice").value + " · sample";
+
+  if (pb) { pb.classList.add("playing"); pb.textContent = "■"; }
+  currentPlayBtn = pb;
+  currentVoiceId = "__sample__";
+
+  fpAudio.play().catch((e) => {
+    console.error("Sample audio play error:", e);
+    toast("Could not play sample — check serve.py console", "err");
+    clearPlayState();
+    if (pb) { pb.classList.remove("playing"); pb.textContent = "▶"; }
+  });
+
+  fpAudio.onended = () => {
+    clearPlayState();
+    if (pb) { pb.classList.remove("playing"); pb.textContent = "▶"; }
+  };
+}
+
+let blendGender  = "f";
+let blendMix1    = 0.6;   // fraction for voice 1
+let customExists = { m: false, f: false };
+
+function initBlender() {
+  // Wire chevron
+  const det = document.getElementById("blenderDetails");
+  det.addEventListener("toggle", () => {
+    document.getElementById("blenderChevron").textContent =
+      det.open ? "▾ hide" : "▶ show";
+  });
+
+  // Populate voice dropdowns (all voices)
+  const v1sel = document.getElementById("blendV1");
+  const v2sel = document.getElementById("blendV2");
+  VOICES.forEach(([id, gender, accent, desc]) => {
+    const mk = (sel, selectedId) => {
+      const opt = document.createElement("option");
+      opt.value = id;
+      opt.textContent = `${id}  —  ${accent} ${gender} · ${desc}`;
+      if (id === selectedId) opt.selected = true;
+      sel.appendChild(opt);
+    };
+    mk(v1sel, "af_bella");
+    mk(v2sel, "af_nova");
+  });
+
+  // Build mix buttons 10%–90%
+  const container = document.getElementById("mixButtons");
+  for (let pct = 10; pct <= 90; pct += 10) {
+    const btn = document.createElement("button");
+    btn.className = "filter-btn" + (pct === 60 ? " active" : "");
+    btn.textContent = `${pct}%`;
+    btn.dataset.pct = pct;
+    btn.onclick = () => setBlendMix(pct, btn);
+    container.appendChild(btn);
+  }
+
+  updateBlendPreview();
+  checkCustomExists();
+}
+
+function setBlendGender(g) {
+  blendGender = g;
+  document.getElementById("blendGenderF").classList.toggle("active", g === "f");
+  document.getElementById("blendGenderM").classList.toggle("active", g === "m");
+  document.getElementById("blendGenderNote").textContent =
+    g === "f" ? "Output: cf_voice" : "Output: cm_voice";
+  updateBlendPlayState();
+}
+
+function setBlendMix(pct, btn) {
+  blendMix1 = pct / 100;
+  document.querySelectorAll("#mixButtons .filter-btn").forEach(b =>
+    b.classList.toggle("active", b === btn));
+  updateBlendPreview();
+}
+
+function updateBlendPreview() {
+  const v1 = document.getElementById("blendV1").value;
+  const v2 = document.getElementById("blendV2").value;
+  const p1 = Math.round(blendMix1 * 100);
+  const p2 = 100 - p1;
+  document.getElementById("bv1name").textContent = v1;
+  document.getElementById("bv2name").textContent = v2;
+  document.getElementById("bv1pct").textContent  = `${p1}%`;
+  document.getElementById("bv2pct").textContent  = `${p2}%`;
+  document.getElementById("blendMixLabel").textContent =
+    `Voice 1: ${p1}% · Voice 2: ${p2}%`;
+}
+
+async function checkCustomExists() {
+  try {
+    const res  = await fetch(`${API}/api/blend-status`);
+    const data = await res.json();
+    customExists = { m: data.m.wav, f: data.f.wav };
+    updateBlendPlayState();
+  } catch(e) {}
+}
+
+function updateBlendPlayState() {
+  const has = customExists[blendGender];
+  document.getElementById("blendPlayBtn").disabled = !has;
+  document.getElementById("blendUseBtn").disabled  = !has;
+  if (has) {
+    const label = blendGender === "f" ? "cf_voice" : "cm_voice";
+    document.getElementById("blendStatus").textContent =
+      `✓ ${label}.wav ready`;
+  }
+}
+
+async function runBlend() {
+  const v1  = document.getElementById("blendV1").value;
+  const v2  = document.getElementById("blendV2").value;
+  if (v1 === v2) { toast("Select two different voices", "err"); return; }
+
+  const btn = document.getElementById("blendBtn");
+  const sta = document.getElementById("blendStatus");
+  btn.disabled    = true;
+  btn.textContent = "⏳ Blending…";
+  sta.textContent = "Running — this takes 20–40 seconds…";
+  sta.style.color = "var(--muted)";
+
+  try {
+    const res  = await fetch(`${API}/api/blend`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ gender: blendGender, voice1: v1, voice2: v2, mix1: blendMix1 })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      sta.textContent = `✓ ${data.label}.wav created  (${data.v1}×${Math.round(data.mix1*100)}% + ${data.v2}×${Math.round(data.mix2*100)}%)`;
+      sta.style.color = "var(--success)";
+      customExists[blendGender] = true;
+      updateBlendPlayState();
+      // Refresh sample manifest so the audition panel picks it up
+      await loadSampleManifest();
+      toast(`Custom voice created: ${data.label}`, "ok");
+    } else {
+      sta.textContent = `✗ ${data.error}`;
+      sta.style.color = "var(--danger)";
+      toast("Blend failed — check serve.py console", "err");
+    }
+  } catch(e) {
+    sta.textContent = `✗ Cannot reach serve.py`;
+    sta.style.color = "var(--danger)";
+    toast("Blend failed: " + e.message, "err");
+  }
+
+  btn.disabled    = false;
+  btn.textContent = "⚗ Blend Voices";
+}
+
+function playCustomSample() {
+  const label  = blendGender === "f" ? "cf_voice" : "cm_voice";
+  const pb     = document.getElementById("blendPlayBtn");
+  
+  // Toggle: if already playing, stop it
+  if (currentVoiceId === label) { stopAudio(); return; }
+  
+  playVoice(label, pb, "accented");
+}
+
+function useCustomVoice() {
+  const label = blendGender === "f" ? "cf_voice" : "cm_voice";
+  const globalSel = document.getElementById("globalVoice");
+  ensureCustomOption(globalSel, label);
+  globalSel.value = label;
+  toast(`Global voice set to ${label} (custom blend)`, "ok");
+}
+
+let toastTimer;
+function toast(msg, type="ok") {
+  const el = document.getElementById("toast");
+  el.textContent = msg; el.className = `show ${type}`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.className = "", 3500);
+}
+</script>
+</body>
+</html>

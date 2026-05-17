@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kokoro Audiobook Studio — README</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:      #0a0a0f;
+    --panel:   #12121a;
+    --border:  #1e1e2e;
+    --accent:  #e8c547;
+    --blue:    #4fc3f7;
+    --green:   #69db7c;
+    --red:     #f06292;
+    --text:    #e0e0e0;
+    --muted:   #a0a0a0;
+    --font:    'Space Grotesk', sans-serif;
+    --mono:    'JetBrains Mono', monospace;
+  }
+
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 16px;
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+
+  /* Starfield background */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 15% 20%, rgba(232,197,71,.2) 0%, transparent 100%),
+      radial-gradient(1px 1px at 75% 10%, rgba(79,195,247,.15) 0%, transparent 100%),
+      radial-gradient(1px 1px at 40% 80%, rgba(232,197,71,.1) 0%, transparent 100%);
+    pointer-events: none; z-index: 0;
+  }
+
+  .wrap {
+    position: relative; z-index: 1;
+    width: 75%;
+    margin: 0 auto;
+    padding: 60px 0;
+  }
+
+  /* ── Hero Section ── */
+  .hero {
+    text-align: center;
+    padding-bottom: 60px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 60px;
+  }
+  .hero-badge {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid rgba(232,197,71,.3);
+    border-radius: 999px;
+    padding: 6px 18px;
+    margin-bottom: 24px;
+  }
+  .hero h1 {
+    font-size: 4rem;
+    font-weight: 700;
+    letter-spacing: -2px;
+    line-height: 1;
+    margin-bottom: 20px;
+  }
+  .hero h1 em { font-style: normal; color: var(--accent); }
+  .hero p {
+    color: var(--muted);
+    font-size: 1.2rem;
+    max-width: 700px;
+    margin: 0 auto;
+  }
+
+  /* ── Section Headers ── */
+  .section-head {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 60px 0 24px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+  }
+  .section-head::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── Uniform Cards & Steps ── */
+  .steps { display: flex; flex-direction: column; gap: 20px; }
+  .step {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 30px;
+    display: flex;
+    gap: 25px;
+  }
+
+  .step-num {
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--bg);
+    background: var(--accent);
+    border-radius: 8px;
+    width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .step-body { flex: 1; }
+  .step-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 12px;
+  }
+  .step-desc { color: var(--muted); }
+  
+  /* ── Lists & Typography ── */
+  ul { margin: 15px 0 15px 25px; }
+  li { margin-bottom: 8px; }
+  code {
+    font-family: var(--mono);
+    color: var(--blue);
+    background: rgba(79,195,247,0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  pre {
+    background: #06060d;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--accent);
+    overflow-x: auto;
+    margin: 20px 0;
+    line-height: 1.6;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  /* ── File Table ── */
+  .file-list {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .file-row {
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    padding: 15px 25px;
+    align-items: center;
+  }
+  .file-name { font-family: var(--mono); color: var(--blue); width: 30%; }
+  .file-status { width: 15%; }
+  .file-desc { flex: 1; font-size: 14px; color: var(--muted); }
+
+  .badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+  .badge.req { background: rgba(105,219,124,0.1); color: var(--green); border: 1px solid rgba(105,219,124,0.3); }
+  .badge.opt { background: rgba(160,160,160,0.1); color: var(--muted); border: 1px solid rgba(160,160,160,0.3); }
+
+  /* ── Callouts ── */
+  .callout {
+    display: flex;
+    gap: 20px;
+    padding: 25px;
+    border-radius: 12px;
+    border: 1px solid;
+    margin: 24px 0;
+  }
+  .callout.warn { background: rgba(232,197,71,0.05); border-color: rgba(232,197,71,0.3); }
+  .callout.info { background: rgba(79,195,247,0.05); border-color: rgba(79,195,247,0.3); }
+
+  /* ── Grid ── */
+  .next-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+  }
+  .next-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 25px;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.2s ease;
+  }
+  .next-card:hover { border-color: var(--accent); background: rgba(232,197,71,0.05); }
+
+  footer {
+    margin-top: 80px;
+    padding-top: 40px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  @media (max-width: 1024px) { .wrap { width: 90%; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- hero -->
+  <div class="hero">
+    <div class="hero-badge">Quick Start · README</div>
+    <h1>Kokoro<br><em>Audiobook Studio</em></h1>
+    <p>A local, offline, browser-based tool for converting text files into audiobook-quality narration using the Kokoro TTS engine.</p>
+  </div>
+
+  <!-- what's in the zip -->
+  <div class="section-head">What's in this package</div>
+  <div class="file-list">
+    <div class="file-list-header">kokoro-tools/</div>
+    <div class="file-row">
+      <span class="file-name required">kokoro-studio</span>
+      <span class="badge req">required</span>
+      <span class="file-desc">Shell launcher — run this to start the app</span>
+    </div>
+    <div class="file-row">
+      <span class="file-name required">serve.py</span>
+      <span class="badge req">required</span>
+      <span class="file-desc">Local web server (port 7891)</span>
+    </div>
+    <div class="file-row">
+      <span class="file-name required">kokoro_run.py</span>
+      <span class="badge req">required</span>
+      <span class="file-desc">TTS worker — converts text to WAV</span>
+    </div>
+    <div class="file-row">
+      <span class="file-name required">kokoro_ui.html</span>
+      <span class="badge req">required</span>
+      <span class="file-desc">Browser interface</span>
+    </div>
+    <div class="file-row">
+      <span class="file-name required">voices.txt</span>
+      <span class="badge req">required</span>
+      <span class="file-desc">List of available Kokoro voice files</span>
+    </div>
+    <div class="file-row">
+      <span class="file-name optional">voice_sampler.py</span>
+      <span class="badge opt">optional</span>
+      <span class="file-desc">Generates native-language voice previews</span>
+    </div>
+    <div class="file-row">
+      <span class="file-name optional">voice_sampler_accented_english.py</span>
+      <span class="badge opt">optional</span>
+      <span class="file-desc">Generates accented-English voice previews</span>
+    </div>
+    <div class="file-row">
+      <span class="file-name optional">user_guide.html</span>
+      <span class="badge opt">optional</span>
+      <span class="file-desc">Full in-app user guide (opens from the ? Help button)</span>
+    </div>
+    <div class="file-row">
+      <span class="file-name optional">README.html</span>
+      <span class="badge opt">optional</span>
+      <span class="file-desc">This file</span>
+    </div>
+  </div>
+
+  <!-- steps -->
+  <div class="section-head">Getting started</div>
+  <div class="steps">
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <div class="step-title">Prep Environment</div>
+        <div class="step-desc">
+          You will run the Kokoro as a non-<strong>root</strong> user.
+		  Create the following directories in the user's home directory.
+<pre>mkdir -p ~/Downloads/kokoro    # (location for the bulk of Kokoro's software)
+mkdir -p ~/.local/bin/         # (location for the Kokoro Audiobook Studio app)</pre>
+        </div>
+      </div>
+    </div>
+	
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <div class="step-title">Install Kokoro dependencies</div>
+        <div class="step-desc">
+          You need Python 3.10+, Python PIP, espeak-ng, python3.12-venv and create a virtual environment with Kokoro installed.
+          The Kokoro studio expects the Python virtual environment (venv) to exist at <strong>~/Downloads/kokoro/env1/</strong>.
+<pre># Patch & Install OS Dependencies
+sudo apt update ; sudo apt upgrade -y
+apt install -y python3 python3-pip pipx espeak-ng python3.12-venv
+
+# Create Python Virtual Environment
+python3 -m venv env1
+
+# Enter Python Virtual Environment
+source env1/bin/activate
+
+# Download Kokoro Python Dependencies
+# Audio I/O Support
+pip install soundfile
+
+# PyTorch — CPU-only build (smaller download, sufficient for most systems)
+pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+# Download Core Kokoro A.I. Model and Code (approx. 5.7 GB)
+pip install kokoro </pre>
+          See <strong>user_guide.html → Section 3</strong> for the full install walkthrough including GPU options and pre-caching all voice files.
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <div class="step-title">Place the kokoro-tools folder</div>
+        <div class="step-desc">
+          Copy the <code>kokoro-tools.tar.gz</code> file into <code>~/.local/bin/kokoro-tools/</code>
+		  Unzip the file:
+<pre>cp /path/to/kokoro-tools.tar.gz  ~/.local/bin/
+cd ~/.local/bin/
+tar xvzf ./kokoro-tools.tar.gz
+./kokoro-tools/
+./kokoro-tools/serve.py
+./kokoro-tools/voices.txt
+./kokoro-tools/kokoro_ui.html
+./kokoro-tools/kokoro-studio
+./kokoro-tools/README.html
+./kokoro-tools/user_guide.html
+./kokoro-tools/kokoro_run.py
+./kokoro-tools/voice_sampler.py
+./kokoro-tools/voice_sampler_accented_english.py</pre>
+          This location is already on <code>$PATH</code> for user-installed binaries on Ubuntu 24.04 / Pop!_OS. If you use a different path, update <strong>VENV_ACTIVATE</strong> inside the <code>kokoro-studio</code> script to match your venv location.
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <div class="step-title">Make the launcher executable</div>
+        <div class="step-desc">
+<pre>chmod +x ~/.local/bin/kokoro-tools/kokoro-studio</pre>
+          You only need to do this once.
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <div class="step-title">Add a shell alias (recommended)</div>
+        <div class="step-desc">
+          So you can type <code>kokoro-studio</code> from anywhere:
+<pre>echo "alias kokoro-studio='~/.local/bin/kokoro-tools/kokoro-studio'" >> ~/.bashrc
+source ~/.bashrc</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">6</div>
+      <div class="step-body">
+        <div class="step-title">Run the studio from your project folder</div>
+        <div class="step-desc">
+          Navigate to the directory containing your <code>.txt</code> chapter files, then launch:
+<pre>cd ~/my-audiobook-project
+kokoro-studio</pre>
+          The server starts, your browser opens to <strong>http://localhost:7891</strong>, and the interface is ready. The terminal window that launched the studio must stay open while you work.
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">7</div>
+      <div class="step-body">
+        <div class="step-title">Generate voice samples (first time only)</div>
+        <div class="step-desc">
+          The Voice Audition panel needs pre-generated sample WAV files to play previews. Inside <code>Kokoro Audiobook Studio</code>weba app, open the <strong>Voice Audition</strong> section and click <code>⚙ Native language</code> and/or <code>⚙ Accented English</code> to generate them. 
+		  <br><strong>Run one voice generator at a time.</strong>
+		  <br>Depending on your system, this can takes several minutes and only needs to be done once — samples are saved inside <code>kokoro-tools/</code> and reused on every future launch.
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">8</div>
+      <div class="step-body">
+        <div class="step-title">Estimated Disk Usager</div>
+        <div class="step-desc">
+		You will need approxiamtely <code>10 GB</code> of free space in your home diretory. 
+		<br>Approximately <code>6 GB</code> is reguired for all the Kokoro application and generated voice sample files.
+<pre>i.e.
+du -sh ~/Downloads/kokoro/env1  \
+~/.cache/huggingface/hub/models--hexgrad--Kokoro-82M/  \
+~/.local/bin/kokoro-tools/ | column -t
+ 
+5.5G  /home/jdoe/Downloads/kokoro/env1
+339M  /home/jdoe/.cache/huggingface/hub/models--hexgrad--Kokoro-82M/
+59M   /home/jdoe/.local/bin/kokoro-tools/</pre>
+<br>
+<p>An additional <code>1-2 GB</code> will be needed for the <strong>.wav</strong> files that will be generated by this application. 
+<br>On average, expeted a <strong>15 min</strong> audio file to be approxiately <strong>35-45 MB/file</strong></p>
+<pre>i.e.
+audiobook_output$ du -sh *.wav | column -t
+
+48M  Book_5_Chapter_01.wav
+40M  Book_5_Chapter_02.wav
+33M  Book_5_Chapter_03.wav
+29M  Book_5_Chapter_04.wav
+34M  Book_5_Chapter_05.wav
+44M  Book_5_Chapter_06.wav
+37M  Book_5_Chapter_07.wav
+31M  Book_5_Chapter_08.wav
+32M  Book_5_Chapter_09.wav
+38M  Book_5_Chapter_10.wav
+31M  Book_5_Epilogue.wav</pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- platform note -->
+<div class="section-head" style="margin-top:36px;">Platform Notes</div>
+  <div class="callout warn">
+    <div class="icon">⚠</div>
+    <p><strong>Ubuntu / Pop!_OS 24.04:</strong> These instructions are written for Ubuntu 24.04 and Pop!_OS 24.04. Commands and paths should work as-is on most Debian-based distributions. macOS and Windows users will need to adjust the venv activation path, the <code>apt</code> commands, and the terminal emulator detection inside <code>kokoro-studio</code>.</p>
+  </div>
+
+  <div class="callout info" style="margin-top:12px;">
+    <div class="icon">ℹ</div>
+    <p><strong>Fully offline after setup:</strong> Kokoro downloads model weights (~330 MB) and voice files from Hugging Face on first use. After that, no internet connection is required. To lock it offline permanently, add <code>export HF_HUB_OFFLINE=1</code> to your <code>~/.bashrc</code>.</p>
+  </div>
+  
+
+  <!-- text file formatting -->
+  <div class="section-head" style="margin-top:36px;">EXTRA: Preparing your text files</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">8</div>
+      <div class="step-body">
+        <div class="step-title">Format your <code>.txt</code> files for best results</div>
+        <div class="step-desc">
+          Kokoro reads plain text — no markup, no formatting codes. How you punctuate and structure
+          the text directly controls pacing, pausing, and intonation. Follow these rules before running
+          a conversion.
+
+          <br><br><strong>Punctuation = pacing</strong><br>
+          Kokoro uses punctuation to determine pauses, not blank lines.
+          <ul style="margin:8px 0 0 18px; line-height:2.2;">
+            <li>Comma <code>,</code> — brief pause</li>
+            <li>Period <code>.</code> — full stop, natural breath</li>
+            <li>Em dash <code>—</code> — dramatic mid-sentence break</li>
+            <li>Ellipsis <code>...</code> — trailing off, hesitation</li>
+          </ul>
+
+          <br><strong>Spell out numbers and abbreviations</strong><br>
+          The phonemiser handles most cases but stumbles on edge cases.
+<pre>Use:  "Chapter Three"   not  "Chapter 3"
+Use:  "Doctor Voss"     not  "Dr. Voss"
+Use:  "twenty-five"     not  "25"
+Use:  "and"             not  "&amp;"</pre>
+
+          <br><strong>Fix curly quotes before converting</strong><br>
+          Word processors save “smart” quotes that can confuse the phonemiser.
+          Run this from your chapter directory to convert them all at once:
+<pre>sed -i "s/‘/'/g; s/’/'/g; s/“/"/g; s/”/"/g" *.txt</pre>
+
+          <br><strong>Proper nouns and invented names</strong><br>
+          Kokoro mispronounces unusual or invented names. Write them phonetically in the source
+          file — e.g. if <em>Kaelith</em> should sound like <em>Kaylith</em>, use the phonetic
+          spelling. Keep a substitution log so you apply changes consistently across all chapters.
+
+          <br><br><strong>Sentence length sweet spot</strong><br>
+          Sentences over ~40 words can lose natural intonation mid-way — break them with a period
+          or em dash. Very short sentences (under 5 words) can sound slightly clipped; fine for
+          action beats, avoid in exposition and emotional passages.
+
+          <br><br><strong>File encoding</strong><br>
+          Save every file as <strong>UTF-8</strong>. The studio falls back to latin-1 if needed,
+          but UTF-8 is safer and avoids character rendering surprises.
+
+          <br><br><strong>One chapter per file, headers optional</strong><br>
+          Keep each chapter as a single <code>.txt</code> file. Splitting chapters resets Kokoro’s
+          prosody (rhythm and intonation) at each boundary, which can make narration sound
+          disjointed at join points. If your file starts with a chapter heading like
+          <em>“Chapter One: The Storm”</em>, Kokoro will read it aloud — this is usually
+          desirable; delete it only if you’re adding chapter markers separately in post-production.
+		  
+		  <br><br><strong>Kokoro Optimization Prompt</strong><br>
+		  When preparing a manuscript for Kokoro, use the prompt below. It is designed to handle the "phonetic translation" and structural cleanup necessary to prevent robotic pacing or mispronunciations.
+		  
+<pre># AI Prompt for Kokoro TTS Optimization
+Act as a specialized script editor for the Kokoro Text-to-Speech engine. Your goal is to rewrite the provided text into a "clean" format that maximizes natural intonation and pacing.
+
+Follow these strict transformation rules:
+
+1. **Pacing & Punctuation:**
+   - Use commas (,) for brief pauses.
+   - Use periods (.) for full stops and breaths.
+   - Use em dashes (—) for dramatic mid-sentence breaks.
+   - Use ellipses (...) for trailing off or hesitations.
+   - Ensure no sentence exceeds ~40 words; break long sentences using periods or em dashes to maintain prosody.
+   - Expand very short sentences (under 5 words) in exposition to avoid a "clipped" sound, unless they are specific action beats.
+
+2. **Verbal Expansion:**
+   - Spell out all numbers (e.g., "twenty-five" instead of "25", "Chapter Three" instead of "Chapter 3").
+   - Expand all abbreviations and symbols (e.g., "Doctor" instead of "Dr.", "and" instead of "&").
+
+3. **Phonetic Formatting:**
+   - If the text contains invented names or unusual proper nouns, provide a phonetic spelling that is easy for a phonemiser to interpret (e.g., change "Kaelith" to "Kaylith").
+
+4. **Formatting Stripping:**
+   - Remove all Markdown (bold, italics, headers) and special formatting codes.
+   - Convert all "smart" or curly quotes (“ ” ‘ ’) to straight quotes (" ').
+   - Output the result as plain text only.
+
+5. **Structure:**
+   - Keep the text as a continuous flow suitable for a single .txt file. 
+   - Ensure the chapter heading is included at the top if present.
+
+				[PASTE YOUR TEXT BELOW]</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- next steps -->
+  <div class="section-head" style="margin-top:36px;">Where to go next</div>
+  <div class="next-grid">
+    <a class="next-card" href="user_guide.html">
+      <div class="nc-icon">📖</div>
+      <div class="nc-title">User Guide</div>
+      <div class="nc-desc">Full reference — installation, all features, troubleshooting, and credits</div>
+    </a>
+    <a class="next-card" href="http://localhost:7891" target="_blank">
+      <div class="nc-icon">🎙</div>
+      <div class="nc-title">Open the Studio</div>
+      <div class="nc-desc">Launch kokoro-studio first, then click here to open the UI</div>
+    </a>
+    <a class="next-card" href="https://huggingface.co/hexgrad/Kokoro-82M" target="_blank">
+      <div class="nc-icon">🤗</div>
+      <div class="nc-title">Kokoro on Hugging Face</div>
+      <div class="nc-desc">Model card, voice list, and release notes</div>
+    </a>
+    <a class="next-card" href="https://claude.ai" target="_blank">
+      <div class="nc-icon">✦</div>
+      <div class="nc-title">Built with Claude</div>
+      <div class="nc-desc">This application was designed and coded by Claude — Anthropic's AI assistant</div>
+    </a>
+  </div>
+
+  <footer>
+    Kokoro Audiobook Studio &nbsp;·&nbsp;
+    Designed &amp; built by <a href="https://claude.ai" target="_blank">Claude</a> (Anthropic) &nbsp;·&nbsp;
+    Powered by <a href="https://huggingface.co/hexgrad/Kokoro-82M" target="_blank">Kokoro-82M</a> by hexgrad<br>
+    Ubuntu / Pop!_OS 24.04 &nbsp;·&nbsp; Fully offline after initial setup &nbsp;·&nbsp;
+    Open <a href="user_guide.html">user_guide.html</a> for the full guide
+  </footer>
+
+</div>
+</body>
+</html>

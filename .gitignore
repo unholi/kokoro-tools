@@ -1,0 +1,23 @@
+# Generated voice samples
+voice_samples/
+voice_samples_accented_english/
+
+# Audio output
+audiobook_output/
+*.wav
+*.log
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+env*/
+venv*/
+.venv/
+
+# Custom voice tensors
+*.pt
+
+# OS
+.DS_Store
+Thumbs.db

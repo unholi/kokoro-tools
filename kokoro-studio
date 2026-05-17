@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+# kokoro-studio
+# Run from inside any audiobook working directory:
+#   cd ~/my_audiobook && kokoro-studio
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PORT=7891
+URL="http://localhost:$PORT"
+
+# ── Kokoro virtualenv ──────────────────────────────────────────
+# Activate the venv so serve.py (and every job it spawns) uses
+# the Python that has kokoro, torch, soundfile, etc. installed.
+VENV_ACTIVATE="$HOME/Downloads/kokoro/env1/bin/activate"
+
+if [ ! -f "$VENV_ACTIVATE" ]; then
+  echo ""
+  echo "  [ERROR] Kokoro venv not found at:"
+  echo "          $VENV_ACTIVATE"
+  echo "  Update VENV_ACTIVATE in kokoro-studio if the path has changed."
+  exit 1
+fi
+
+# shellcheck disable=SC1090
+source "$VENV_ACTIVATE"
+
+echo ""
+echo "  ╔══════════════════════════════════════════╗"
+echo "  ║   Kokoro Audiobook Studio                ║"
+echo "  ║   Starting server on port $PORT...          ║"
+echo "  ╚══════════════════════════════════════════╝"
+echo ""
+echo "  Venv   : $VIRTUAL_ENV"
+echo "  Python : $(which python3)"
+echo "  Work   : $(pwd)"
+echo ""
+
+# Check serve.py exists
+if [ ! -f "$SCRIPT_DIR/serve.py" ]; then
+  echo "  [ERROR] serve.py not found in $SCRIPT_DIR"
+  exit 1
+fi
+
+# Start server (uses the venv python3 now that the venv is active)
+python3 "$SCRIPT_DIR/serve.py" &
+SERVER_PID=$!
+
+# Give it a moment to bind the port
+sleep 1
+
+# Open the browser
+echo "  Opening browser → $URL"
+if command -v xdg-open &>/dev/null; then
+  xdg-open "$URL" &>/dev/null &
+elif command -v open &>/dev/null; then
+  open "$URL" &
+else
+  echo "  [INFO] Navigate to $URL manually."
+fi
+
+echo ""
+echo "  Server running (PID $SERVER_PID). Press Ctrl-C to stop."
+echo ""
+
+trap "echo ''; echo '  Stopping server...'; kill $SERVER_PID 2>/dev/null; exit 0" INT TERM
+
+wait $SERVER_PID
