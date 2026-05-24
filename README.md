@@ -8,7 +8,7 @@
 
 ## Quick Personal Note
 
-I am not a software developer, nor do I pretend to be one. I am, however, savvy enough to use the tools available to me to generate a simple solution for a specific need I had—and this tool is the result. I make absolutely no claims about this tool beyond the fact that it works for me on my workstation, with the results shown below. I’ve also installed it on other systems in my home lab running Pop!_OS 24.04, and it worked as expected, with the exception that run times varied significantly due to hardware differences.
+I am not a software developer, nor do I pretend to be one. I am, however, tech savvy enough to use the tools available to me to generate a simple solution for a specific need I had—and this tool is the result. I make absolutely no claims about this tool beyond the fact that it works for me on my workstation, with the results shown below. I’ve also installed it on other systems in my home lab running Pop!_OS 24.04, and it worked as expected, with the exception that run times varied significantly due to hardware differences.
 
 As for the software itself, I can open the files in vi and get a general idea of what each file is doing, but beyond that, this is magic to me. I relied heavily on Claude Sonnet 4.6 to generate this tool and eventually reached a point where I felt confident enough to share it with others. Is it perfect? No. Could things be improved? Probably. But as I said, I’m not a software developer—this simply met my specific need.
 
