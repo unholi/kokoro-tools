@@ -154,7 +154,6 @@ def main():
         lf.write(f"Session finished : {ts_end}  |  Total audio: {th}h {tm:02d}m {ts:02d}s\n")
 
     print(f"  Log file: {log_path}")
-    input("\n  Press Enter to close this window…")
 
 
 if __name__ == "__main__":

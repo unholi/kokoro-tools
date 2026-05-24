@@ -22,6 +22,9 @@ if [ ! -f "$VENV_ACTIVATE" ]; then
   exit 1
 fi
 
+# Capture the working directory before anything can change it
+KOKORO_WORK_DIR="$(pwd)"
+
 # shellcheck disable=SC1090
 source "$VENV_ACTIVATE"
 
@@ -43,7 +46,7 @@ if [ ! -f "$SCRIPT_DIR/serve.py" ]; then
 fi
 
 # Start server (uses the venv python3 now that the venv is active)
-python3 "$SCRIPT_DIR/serve.py" &
+cd "$KOKORO_WORK_DIR" && python3 "$SCRIPT_DIR/serve.py" &
 SERVER_PID=$!
 
 # Give it a moment to bind the port

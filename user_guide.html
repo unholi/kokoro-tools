@@ -309,7 +309,8 @@
           <li><a href="#usage-blender">Voice Blender</a></li>
           <li><a href="#usage-settings">Settings</a></li>
           <li><a href="#usage-sample">Sample Audio</a></li>
-          <li><a href="#usage-files">Text Files</a></li>
+          <li><a href="#usage-files">Text Files &amp; Folder Switching</a></li>
+          <li><a href="#usage-batch">Batch Processing</a></li>
         </ol>
       </li>
       <li><a href="#troubleshooting">Troubleshooting</a></li>
@@ -536,14 +537,51 @@ kokoro-studio</pre>
       <strong>Speed and language pipeline</strong> settings from the Settings panel are applied to Sample Audio generation as well. Adjust those before generating if needed.
     </div>
 
-    <h3 id="usage-files">Text Files and converting chapters</h3>
-    <p>The Text Files panel lists every <code>.txt</code> file found in your current working directory, along with a line count and word count for each file (blank lines are excluded from the line count). The table refreshes automatically on load; click <strong>⟳ Refresh</strong> if you add files after launching the studio.</p>
+    <h3 id="usage-files">Text Files and folder switching</h3>
+    <p>The Text Files panel lists every <code>.txt</code> file found in the current working directory, along with a line count and word count per file (blank lines excluded). The table populates automatically on launch and can be refreshed with <strong>⟳ Refresh</strong> if files are added mid-session.</p>
+
+    <h4 style="margin:16px 0 8px; font-size:14px; color:var(--text);">Switching folders without restarting</h4>
+    <p>The <strong>Folder</strong> bar at the top of the Text Files panel lets you point the studio at a different directory without killing and relaunching the server. Type a path and press <strong>⇄ Switch</strong> or hit Enter. Both absolute and relative paths are supported:</p>
+    <pre># Relative to the current folder — most convenient when books share a parent
+../Book2
+../Book3/chapters
+
+# Absolute path
+/home/ladmin/Documents/AI_Books/Book4
+
+# Home-relative
+~/Documents/AI_Books/Book5</pre>
+    <p>After a successful switch the file table clears and reloads with the new folder's contents. All Settings (voice, speed, output folder) are preserved across switches. The resolved absolute path is shown in the status area next to the Switch button.</p>
+    <div class="callout info">
+      <strong>Relative paths</strong> resolve against the <em>current</em> working directory, not the startup directory. Each switch is relative to wherever you currently are — so <code>../Book3</code> after switching to <code>../Book2</code> correctly lands in <code>Book3</code>, not back in the original folder.
+    </div>
+
+    <h4 style="margin:16px 0 8px; font-size:14px; color:var(--text);">Converting chapters</h4>
     <ol class="steps">
       <li>Tick the checkboxes next to the chapters to convert. Use <strong>Select all</strong> or <strong>Deselect all</strong> for bulk selection.</li>
       <li>Assign a voice per file using each row's dropdown, or use the <strong>Apply voice to all selected</strong> bar at the top to set one voice across all ticked files at once. Custom voices (<code>cf_voice</code> / <code>cm_voice</code>) appear at the top of each dropdown after being created.</li>
       <li>Confirm Speed, Language pipeline, and Output folder in Settings.</li>
-      <li>Click <strong>▶ LAUNCH</strong>. A terminal window opens showing chunk-by-chunk progress. WAV files appear in your output folder as each chapter completes.</li>
+      <li>Click <strong>▶ LAUNCH</strong>. See <a href="#usage-batch">Batch Processing</a> below for how multi-voice runs are handled.</li>
     </ol>
+
+    <h3 id="usage-batch">Batch processing</h3>
+    <p>When selected files are assigned different voices, the studio groups them into batches — one batch per unique voice — and processes them <strong>sequentially</strong> in a single terminal window. Batch 2 only starts after Batch 1 has fully completed, preventing multiple heavy processes from competing for CPU resources simultaneously.</p>
+    <p>The terminal window shows a queue header and progress for each batch:</p>
+    <pre>━━━  Kokoro Queue: 2 batch(es) to run  ━━━
+
+▶  Batch 1/2 — voice: af_aoede — 5 file(s)
+  [1/5] Chapter_1.txt → Chapter_1.wav
+  ...
+✓  Batch 1/2 complete
+
+▶  Batch 2/2 — voice: am_eric — 3 file(s)
+  [1/3] Chapter_6.txt → Chapter_6.wav
+  ...
+✓  Batch 2/2 complete
+
+━━━  All batches finished  ━━━
+Press Enter to close…</pre>
+    <p>Batch order follows the order voices first appear in the file table — top to bottom. All WAV files from all batches land in the same configured output folder.</p>
 
     <h3>Session log</h3>
     <p>Every conversion is appended to <code>kokoro_session.log</code> inside your output folder. Each entry records the timestamp, filename, voice, speed, output duration, and status — useful for replicating a specific result or auditing what was used for each chapter.</p>
@@ -578,6 +616,13 @@ Python : /home/yourname/Downloads/kokoro/env1/bin/python3</pre>
       <li>Nothing else is using port 7891 (<code>lsof -i :7891</code>)</li>
       <li>You opened the browser <em>after</em> the server started (the launcher waits 1 second; on slow machines you may need to refresh)</li>
     </ul>
+
+    <h3>Folder switch shows "Path does not exist" for a valid path</h3>
+    <div class="callout alert">
+      <strong>Symptom:</strong> Typing a folder path and clicking Switch returns an error even though the folder exists.
+    </div>
+    <p><strong>Relative path resolution:</strong> Relative paths like <code>../Book2</code> resolve against the <em>current</em> working directory shown in the Folder bar status, not the original startup directory. If you have switched folders already, your relative path must be relative to where you currently are. Use an absolute path if in doubt — e.g. <code>/home/ladmin/Documents/AI_Books/Book2</code>.</p>
+    <p><strong>Tilde expansion:</strong> Paths starting with <code>~</code> are expanded automatically by the server. If <code>~</code> is not resolving correctly, use the full absolute path instead.</p>
 
     <h3>Sample Audio play button does nothing after generating</h3>
     <div class="callout alert">

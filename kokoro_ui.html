@@ -477,11 +477,11 @@
   </div>
 
   <!-- ══ SAMPLE AUDIO ══ -->
-  <details id="sampleAudioDetails" open style="margin-bottom:20px;">
+  <details id="sampleAudioDetails" style="margin-bottom:20px;">
     <summary style="list-style:none; outline:none;">
       <div class="section-label" style="margin-bottom:0; cursor:pointer; user-select:none;">
         Sample Audio
-        <span id="sampleAudioChevron" style="font-size:10px; color:var(--muted); margin-left:6px;">▾ hide</span>
+        <span id="sampleAudioChevron" style="font-size:10px; color:var(--muted); margin-left:6px;">▶ show</span>
       </div>
     </summary>
 
@@ -545,6 +545,29 @@
       <label>Apply voice to all selected:</label>
       <select id="globalVoice"></select>
       <button class="apply-btn" onclick="applyGlobalVoice()">Apply to selected ▾</button>
+    </div>
+
+    <!-- folder switcher -->
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;
+                padding:10px 14px; background:var(--surface2);
+                border:1px solid var(--border); border-radius:8px; flex-wrap:wrap;">
+      <span style="font-size:11px; color:var(--muted); text-transform:uppercase;
+                   letter-spacing:1px; white-space:nowrap; flex-shrink:0;">Folder:</span>
+      <input id="workDirInput" type="text" spellcheck="false"
+             style="flex:1; min-width:200px; background:var(--surface);
+                    border:1px solid var(--border); border-radius:6px;
+                    color:var(--text); font-family:var(--font-mono); font-size:12px;
+                    padding:6px 10px; outline:none; transition:border-color .15s;"
+             onfocus="this.style.borderColor='var(--accent)'"
+             onblur="this.style.borderColor='var(--border)'"
+             onkeydown="if(event.key==='Enter') switchFolder()"
+             placeholder="e.g. ../Book2 or /home/user/Documents/Book3" />
+      <button class="btn-sm" onclick="switchFolder()"
+              style="border-color:var(--accent2); color:var(--accent2);">
+        ⇄ Switch
+      </button>
+      <span id="workDirStatus" style="font-size:11px; color:var(--muted);
+            white-space:nowrap;"></span>
     </div>
 
     <div class="file-toolbar">
@@ -665,6 +688,13 @@ window.addEventListener("DOMContentLoaded", async () => {
   initBlender();
   initSampleAudio();
   populateGlobalSelect();
+  // Fetch and display the current working directory
+  try {
+    const res = await fetch(`${API}/api/workdir`);
+    const data = await res.json();
+    const inp = document.getElementById("workDirInput");
+    if (inp && data.path) inp.placeholder = data.path;
+  } catch(e) {}
   refreshFiles();
 });
 
@@ -872,6 +902,57 @@ function applyGlobalVoice() {
   toast(`Applied ${v} to selected files`, "ok");
 }
 
+async function switchFolder() {
+  const input  = document.getElementById("workDirInput");
+  const status = document.getElementById("workDirStatus");
+  const path   = input.value.trim();
+
+  if (!path) { toast("Enter a folder path first", "err"); return; }
+
+  status.textContent = "Switching…";
+  status.style.color = "var(--muted)";
+
+  try {
+    const res  = await fetch(`${API}/api/set-workdir`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path })
+    });
+
+    // Guard against non-JSON responses (plain text errors, etc.)
+    const text = await res.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch(parseErr) {
+      console.error("[switchFolder] non-JSON response:", text);
+      status.textContent = `✗ Server error (${res.status}): ${text.slice(0, 120)}`;
+      status.style.color = "var(--danger)";
+      toast(`Switch failed — check serve.py console`, "err");
+      return;
+    }
+
+    if (data.ok) {
+      input.value        = "";
+      input.placeholder  = data.resolved;
+      status.textContent = `✓ ${data.resolved}`;
+      status.style.color = "var(--success)";
+      toast(`Switched to ${data.resolved}`, "ok");
+      files = [];
+      await refreshFiles();
+    } else {
+      status.textContent = `✗ ${data.error}`;
+      status.style.color = "var(--danger)";
+      toast(`Switch failed: ${data.error}`, "err");
+    }
+  } catch(e) {
+    status.textContent = `✗ ${e.message}`;
+    status.style.color = "var(--danger)";
+    console.error("[switchFolder] fetch error:", e);
+    toast("Switch failed: " + e.message, "err");
+  }
+}
+
 async function refreshFiles() {
   try {
     const res  = await fetch(`${API}/api/files`);
@@ -995,49 +1076,51 @@ async function launch() {
 
   const speed  = parseFloat(document.getElementById("speed").value);
   const lang   = document.getElementById("langCode").value;
-  const output = document.getElementById("outputDir").value || "./audiobook_out";
+  const output = document.getElementById("outputDir").value || "./audiobook_output";
 
+  // Group files by voice — preserving the order files appear in the table
   const byVoice = {};
   selected.forEach(f => { (byVoice[f.voice] = byVoice[f.voice]||[]).push(f.name); });
 
+  // Build ordered batch list — one entry per unique voice
+  const batches = Object.entries(byVoice).map(([voice, fileList]) => ({ voice, files: fileList }));
+  const totalFiles = selected.length;
+  const totalBatches = batches.length;
+
   const btn = document.getElementById("launchBtn");
-  btn.disabled = true; btn.textContent = "⏳ LAUNCHING…";
+  btn.disabled = true;
+  btn.textContent = "⏳ LAUNCHING…";
 
-  const errors = [];
-  let launched  = 0;
+  try {
+    const res  = await fetch(`${API}/api/run-queue`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ batches, speed, output_dir: output, lang_code: lang })
+    });
 
-  for (const [voice, fileList] of Object.entries(byVoice)) {
-    try {
-      const res  = await fetch(`${API}/api/run`, {
-        method:"POST", headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ files:fileList, voice, speed, output_dir:output, lang_code:lang })
-      });
-      const data = await res.json();
-      if (data.started) {
-        launched++;
-        console.log(`[launch] OK voice=${voice} pid=${data.pid} method=${data.method}`);
-      } else {
-        const msg = data.error || "server returned started:false";
-        errors.push(`${voice}: ${msg}`);
-        console.error(`[launch] FAILED voice=${voice}`, data);
-      }
-    } catch(e) {
-      errors.push(`${voice}: cannot reach serve.py (${e.message})`);
-      console.error("[launch] fetch error", e);
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); }
+    catch(e) {
+      toast(`✗ Server error: ${text.slice(0,120)}`, "err");
+      btn.disabled = false; btn.textContent = "▶ LAUNCH";
+      return;
     }
+
+    if (data.ok) {
+      const batchWord = totalBatches === 1 ? "batch" : "batches";
+      toast(`▶ ${totalBatches} ${batchWord} queued (${totalFiles} files) — running sequentially in terminal`, "ok");
+      console.log(`[launch] queue started PID ${data.pid} via ${data.method}`);
+    } else {
+      toast(`✗ Launch failed: ${data.error}`, "err");
+      console.error("[launch] queue failed", data);
+    }
+  } catch(e) {
+    toast(`✗ Cannot reach serve.py: ${e.message}`, "err");
+    console.error("[launch] fetch error", e);
   }
 
   btn.disabled = false; btn.textContent = "▶ LAUNCH";
-
-  if (errors.length === 0) {
-    toast(`▶ ${launched} job${launched>1?'s':''} launched — terminal window should appear`, "ok");
-  } else if (launched > 0) {
-    toast(`⚠ ${launched} launched, ${errors.length} failed — check serve.py console`, "err");
-    console.error("Launch errors:", errors);
-  } else {
-    toast(`✗ Launch failed: ${errors[0]}`, "err");
-    console.error("All launches failed:", errors);
-  }
 }
 
 // ═══════════════════════════════════════════

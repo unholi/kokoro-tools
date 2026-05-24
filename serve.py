@@ -23,7 +23,8 @@ SAMPLER_NATIVE  = SCRIPT_DIR / "voice_sampler.py"
 SAMPLER_ACCENTED= SCRIPT_DIR / "voice_sampler_accented_english.py"
 VOICES_TXT      = SCRIPT_DIR / "voices.txt"
 UI_FILE    = SCRIPT_DIR / "kokoro_ui.html"
-WORK_DIR   = Path.cwd()                        # the audiobook project directory
+
+WORK_DIR = {"path": Path.cwd()}              # mutable — updated by set-workdir
 
 # Voice sample directories live next to this script in kokoro-tools/
 SAMPLES_NATIVE   = SCRIPT_DIR / "voice_samples"
@@ -46,7 +47,7 @@ jobs_lock = threading.Lock()
 
 def list_txt_files() -> list[dict]:
     results = []
-    for f in sorted(WORK_DIR.iterdir()):
+    for f in sorted(WORK_DIR["path"].iterdir()):
         if not (f.is_file() and f.suffix.lower() == ".txt"):
             continue
         lines = words = 0
@@ -92,6 +93,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
         elif path == "/user_guide.html":
             self._serve_file(SCRIPT_DIR / "user_guide.html", "text/html; charset=utf-8")
+
+        elif path == "/api/workdir":
+            self._json({"path": str(WORK_DIR["path"])})
 
         elif path == "/api/files":
             self._json(list_txt_files())
@@ -179,7 +183,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 return
             # Best-effort: look for a folder matching the given name near WORK_DIR
             name = (body.get("name") or "").strip()
-            candidate = WORK_DIR / name
+            candidate = WORK_DIR["path"] / name
             if candidate.is_dir():
                 self._json({"path": str(candidate)})
             else:
@@ -190,6 +194,18 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if body is None:
                 return
             self._handle_sample_audio(body)
+
+        elif path == "/api/set-workdir":
+            body = self._read_json()
+            if body is None:
+                return
+            self._handle_set_workdir(body)
+
+        elif path == "/api/run-queue":
+            body = self._read_json()
+            if body is None:
+                return
+            self._handle_run_queue(body)
 
         elif path == "/api/blend":
             body = self._read_json()
@@ -231,7 +247,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             "--speed",    speed,
             "--output",   out,
             "--lang",     lang,
-            "--work-dir", str(WORK_DIR),
+            "--work-dir", str(WORK_DIR["path"]),
         ]
 
         print(f"[LAUNCH] voice={voice} speed={speed} files={files}")
@@ -241,7 +257,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             term_cmd, method = _terminal_cmd(cmd)
             print(f"[LAUNCH] terminal method: {method}")
             print(f"[LAUNCH] terminal cmd: {' '.join(str(x) for x in term_cmd)}")
-            proc = subprocess.Popen(term_cmd, cwd=str(WORK_DIR))
+            proc = subprocess.Popen(term_cmd, cwd=str(WORK_DIR["path"]))
             job_id = str(id(proc))
             with jobs_lock:
                 jobs[job_id] = proc
@@ -298,7 +314,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return
 
         # Resolve output so the WAV lands at <out>/quick_text_output.wav
-        abs_out = str((WORK_DIR / out).resolve())
+        abs_out = str((WORK_DIR["path"] / out).resolve())
 
         cmd = [
             sys.executable, str(RUNNER),
@@ -339,7 +355,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return
 
         # Resolve output dir relative to WORK_DIR
-        out_path = (WORK_DIR / out_dir).resolve()
+        out_path = (WORK_DIR["path"] / out_dir).resolve()
         out_path.mkdir(parents=True, exist_ok=True)
         wav_file = out_path / "sample_audio.wav"
 
@@ -394,6 +410,143 @@ voice_arg = torch.load(r"{pt}", weights_only=True)
         except Exception as e:
             self._json({"ok": False, "error": str(e)}, 500)
 
+    def _handle_set_workdir(self, body: dict):
+        raw = body.get("path", "").strip()
+        print(f"[WORKDIR] request: {repr(raw)}")
+        if not raw:
+            self._json({"ok": False, "error": "No path provided"}, 400)
+            return
+        try:
+            # Expand ~ first, then resolve relative to current WORK_DIR
+            expanded = os.path.expanduser(raw)
+            if os.path.isabs(expanded):
+                candidate = Path(expanded).resolve()
+            else:
+                candidate = (WORK_DIR["path"] / expanded).resolve()
+
+            print(f"[WORKDIR] resolved candidate: {candidate}")
+
+            if not candidate.exists():
+                self._json({"ok": False, "error": f"Path does not exist: {candidate}"}, 400)
+                return
+            if not candidate.is_dir():
+                self._json({"ok": False, "error": f"Not a directory: {candidate}"}, 400)
+                return
+            WORK_DIR["path"] = candidate
+            print(f"[WORKDIR] switched to {WORK_DIR['path']}")
+            self._json({"ok": True, "resolved": str(WORK_DIR["path"])})
+        except Exception as e:
+            print(f"[WORKDIR ERROR] {e}")
+            self._json({"ok": False, "error": str(e)}, 500)
+
+    def _handle_run_queue(self, body: dict):
+        """Accept a list of batches and run them sequentially in a background thread.
+        Each batch: {files: [...], voice: str, speed: float, output_dir: str, lang_code: str}
+        A single terminal window runs all batches one after another.
+        """
+        batches  = body.get("batches", [])
+        speed    = str(body.get("speed", 1.0))
+        out      = body.get("output_dir", "./audiobook_output")
+        lang     = body.get("lang_code", "a")
+
+        if not batches:
+            self._json({"ok": False, "error": "No batches provided"}, 400)
+            return
+        if not RUNNER.exists():
+            self._json({"ok": False, "error": f"kokoro_run.py not found at {RUNNER}"}, 500)
+            return
+
+        # Build one shell script that runs all batches sequentially
+        import shlex, tempfile, stat, sysconfig
+
+        # Detect venv activation (same logic as _terminal_cmd)
+        venv_activate = ""
+        venv = os.environ.get("VIRTUAL_ENV", "")
+        if not venv:
+            prefix = sysconfig.get_config_var("prefix") or ""
+            activate = os.path.join(prefix, "bin", "activate")
+            if os.path.isfile(activate):
+                venv_activate = f"source {shlex.quote(activate)}"
+        elif os.path.isfile(os.path.join(venv, "bin", "activate")):
+            venv_activate = f"source {shlex.quote(os.path.join(venv, 'bin', 'activate'))}"
+
+        py = shlex.quote(sys.executable)
+        total_batches = len(batches)
+
+        script_lines = ["#!/usr/bin/env bash",
+                        f"cd {shlex.quote(str(WORK_DIR['path']))}"]
+        if venv_activate:
+            script_lines.append(venv_activate)
+
+        script_lines.append('echo ""')
+        script_lines.append(f'echo "━━━  Kokoro Queue: {total_batches} batch(es) to run  ━━━"')
+        script_lines.append('echo ""')
+
+        for i, batch in enumerate(batches, 1):
+            voice     = batch.get("voice", "af_bella")
+            file_list = batch.get("files", [])
+            if not file_list:
+                continue
+            cmd_parts = ([py, shlex.quote(str(RUNNER)),
+                          "--voice",    shlex.quote(voice),
+                          "--speed",    shlex.quote(speed),
+                          "--output",   shlex.quote(out),
+                          "--lang",     shlex.quote(lang),
+                          "--work-dir", shlex.quote(str(WORK_DIR["path"])),
+                          "--files"] +
+                         [shlex.quote(f) for f in file_list])
+            script_lines.append(f'echo "▶  Batch {i}/{total_batches} — voice: {voice} — {len(file_list)} file(s)"')
+            script_lines.append(" ".join(cmd_parts))
+            script_lines.append(f'echo ""')
+            script_lines.append(f'echo "✓  Batch {i}/{total_batches} complete"')
+            script_lines.append('echo ""')
+
+        script_lines += [
+            'echo "━━━  All batches finished  ━━━"',
+            'read -p "Press Enter to close…"',
+        ]
+
+        fd, script_path = tempfile.mkstemp(suffix=".sh", prefix="kokoro_queue_")
+        with os.fdopen(fd, "w") as f:
+            f.write("\n".join(script_lines) + "\n")
+        os.chmod(script_path, os.stat(script_path).st_mode | stat.S_IEXEC)
+
+        # Open in a terminal
+        import shutil, platform
+        term_cmd, method = None, "unknown"
+        candidates = [
+            ("gnome-terminal", ["--"],  [script_path]),
+            ("konsole",        ["-e"],  [script_path]),
+            ("xfce4-terminal", ["-e"],  [script_path]),
+            ("tilix",          ["-e"],  [script_path]),
+            ("lxterminal",     ["-e"],  [script_path]),
+            ("mate-terminal",  ["-e"],  [script_path]),
+            ("xterm",          ["-e"],  [script_path]),
+            ("x-terminal-emulator", ["-e"], [script_path]),
+        ]
+        for binary, pre, post in candidates:
+            if shutil.which(binary):
+                term_cmd = [binary] + pre + post
+                method   = binary
+                break
+
+        if not term_cmd:
+            log = str(WORK_DIR["path"] / "kokoro_queue.log")
+            term_cmd = ["bash", "-c", f"bash {shlex.quote(script_path)} > {shlex.quote(log)} 2>&1"]
+            method   = f"headless→{log}"
+
+        try:
+            proc   = subprocess.Popen(term_cmd, cwd=str(WORK_DIR["path"]))
+            job_id = str(id(proc))
+            with jobs_lock:
+                jobs[job_id] = proc
+            print(f"[QUEUE] {total_batches} batches started PID {proc.pid} via {method}")
+            self._json({"ok": True, "job_id": job_id, "pid": proc.pid,
+                        "batches": total_batches, "method": method})
+        except Exception as e:
+            print(f"[QUEUE ERROR] {e}")
+            self._json({"ok": False, "error": str(e)}, 500)
+
     def _handle_blend(self, body: dict):
         gender = body.get("gender", "f")        # "m" or "f"
         v1_id  = body.get("voice1", "")
@@ -437,7 +590,8 @@ voice_arg = torch.load(r"{pt}", weights_only=True)
             "print('PT saved')\n"
             "pipeline = KPipeline(lang_code='a')\n"
             "text = 'Hello, this is my custom narrative voice. "
-            "I created this blend to match my own speaking style.'\n"
+            "My voice is a blend of two others to shape a tone that feels unique to my character."
+            "When you mix different voices together, you can fine‑tune the sound until it matches the personality you have in mind.'\n"
             "chunks = []\n"
             "for gs, ps, audio in pipeline(text, voice=blended):\n"
             "    chunks.append(audio)\n"
@@ -542,7 +696,7 @@ def _terminal_cmd(cmd: list[str]) -> tuple[list[str], str]:
 
         script_lines = [
             "#!/usr/bin/env bash",
-            f"cd {shlex.quote(str(WORK_DIR))}",
+            f"cd {shlex.quote(str(WORK_DIR["path"]))}",
         ]
         if venv_activate:
             script_lines.append(venv_activate)
@@ -574,7 +728,7 @@ def _terminal_cmd(cmd: list[str]) -> tuple[list[str], str]:
                 return ([binary] + pre + post, binary)
 
         # Last resort: run in the background without a window and log to file
-        log = str(WORK_DIR / "kokoro_job.log")
+        log = str(WORK_DIR["path"] / "kokoro_job.log")
         bg_cmd = f"{' '.join(shlex.quote(str(c)) for c in cmd)} > {shlex.quote(log)} 2>&1"
         print(f"[WARN] No terminal emulator found. Running headless, logging to {log}")
         return (["bash", "-c", bg_cmd], f"headless→{log}")
@@ -596,7 +750,7 @@ def main():
     print(f"║   Kokoro Audiobook Studio                    ║")
     print(f"║   http://localhost:{PORT}                     ║")
     print(f"║   Tools dir : {str(SCRIPT_DIR)[:30]:<30}║")
-    print(f"║   Work dir  : {str(WORK_DIR)[:30]:<30}║")
+    print(f"║   Work dir  : {str(WORK_DIR["path"])[:30]:<30}║")
     print(f"║   Ctrl-C to stop                             ║")
     print(f"╚══════════════════════════════════════════════╝")
 
@@ -606,7 +760,9 @@ def main():
     print(f"  Samples (accented): {SAMPLES_ACCENTED}")
     print()
 
+    import socket
     server = http.server.ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
+    server.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     try:
         server.serve_forever()
     except KeyboardInterrupt:

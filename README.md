@@ -6,33 +6,6 @@
 
 ---
 
-## Quick Personal Note
-
-I am not a software developer, nor do I pretend to be one. I am, however, savvy enough to use the tools available to me to generate a simple solution for a specific need I had—and this tool is the result. I make absolutely no claims about this tool beyond the fact that it works for me on my workstation, with the results shown below. I’ve also installed it on other systems in my home lab running Pop!_OS 24.04, and it worked as expected, with the exception that run times varied significantly due to hardware differences.
-
-As for the software itself, I can open the files in vi and get a general idea of what each file is doing, but beyond that, this is magic to me. I relied heavily on Claude Sonnet 4.6 to generate this tool and eventually reached a point where I felt confident enough to share it with others. Is it perfect? No. Could things be improved? Probably. But as I said, I’m not a software developer—this simply met my specific need.
-
-I make zero guarantees that this software will work outside my own environment. Use it at your own discretion. If things completely fall apart on your end, Claude Pro [https://claude.ai/upgrade] is relatively inexpensive for a one‑year subscription.
-
-**System Info**
-```
-CPU: AMD Ryzen 7 5700X 8-Core Processor
-Cores: 16 logical / 8 physical per socket
-RAM: 125Gi total / 105Gi available
-
-  Voice Blender (blend + generate sample WAV)  :  ~15–20 seconds
-  Sample Audio (~500 word paste)               :  ~30–45 seconds
-  Single chapter (~100 lines / ~1,600 words)   :  ~60–90 seconds
-  Full chapter  (~530 lines / ~14,000 words)   :  ~17–18 minutes
-
-On this hardware, performance scales roughly linearly about 1.5 seconds per 100 words.
-```
-
-Processing is CPU-bound. A GPU-accelerated PyTorch install will
-significantly reduce generation times, particularly for long chapters.
-
----
-
 ## What's in this package
 
 | File | Required | Purpose |
@@ -159,6 +132,23 @@ sed -i "s/\u2018/'/g; s/\u2019/'/g; s/\u201C/\"/g; s/\u201D/\"/g" *.txt
 
 ---
 
+## Switching Project Folders Mid-Session
+
+You do not need to restart the studio to work on a different book or chapter folder. Use the **Folder** bar at the top of the Text Files panel:
+
+```
+# Relative to your current folder
+../Book2
+../Book3/chapters
+
+# Absolute path
+/home/ladmin/Documents/AI_Books/Book4
+```
+
+Type the path and press **⇄ Switch** or hit Enter. The file table reloads immediately with the new folder's contents. All Settings are preserved. Relative paths resolve against the **current** directory, not the startup directory — so each switch is relative to wherever you currently are.
+
+---
+
 ## Platform Notes
 
 > ⚠️ **Ubuntu / Pop!\_OS 24.04:** These instructions are written for Ubuntu 24.04 and Pop!\_OS 24.04. Commands and paths should work as-is on most Debian-based distributions. macOS and Windows users will need to adjust the venv activation path, the `apt` commands, and the terminal emulator detection inside `kokoro-studio`.
@@ -181,7 +171,7 @@ The studio interface is divided into collapsible panels (all accessible from the
 | **Voice Blender** | Hidden | Mathematically blend two voices into a custom `cf_voice` or `cm_voice` |
 | **Settings** | Visible | Speed, language pipeline, and output folder |
 | **Sample Audio** | Visible | Generate a spoken test from any text using the active voice |
-| **Text Files** | Visible | Select chapters, assign voices, view line/word counts, launch conversion |
+| **Text Files** | Visible | Select chapters, assign voices, view line/word counts, switch folders, launch conversion |
 
 ---
 
@@ -191,6 +181,8 @@ The studio interface is divided into collapsible panels (all accessible from the
 - **Accented English** — non-English voices speaking English with their natural accent
 - **Voice Blender** — create custom blended voices saved as reusable `.pt` tensors
 - **Per-file voice assignment** — different voices for different chapters in one launch
+- **Sequential batch processing** — multi-voice runs process one voice group at a time, keeping your machine responsive
+- **Folder switching** — change source directories mid-session without restarting; supports relative (`../Book2`) and absolute paths
 - **Sample Audio panel** — quick spoken test of any text before committing to a full run
 - **Session log** — append-only `kokoro_session.log` records every conversion with voice, speed, and duration
 - **Fully offline** after initial model download
