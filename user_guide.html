@@ -303,6 +303,7 @@
       <li><a href="#kokoro">About Kokoro TTS</a></li>
       <li><a href="#install">Installing Kokoro</a></li>
       <li><a href="#structure">Application Structure</a></li>
+      <li><a href="#launcher">Desktop App Launcher (optional)</a></li>
       <li><a href="#usage">Using the Studio</a>
         <ol style="margin-top:4px;">
           <li><a href="#usage-audition">Voice Audition</a></li>
@@ -488,16 +489,67 @@ source ~/.bashrc</pre>
     </div>
   </section>
 
+  <!-- 4b. Desktop Launcher -->
+  <section id="launcher">
+    <div class="section-eyebrow">Optional</div>
+    <h2>Desktop App Launcher</h2>
+    <p>On Pop!_OS and other COSMIC-based systems you can add Kokoro Audiobook Studio to your application menu so it launches without opening a terminal first.</p>
+
+    <h3>Creating the launcher</h3>
+    <pre>cat > ~/.local/share/applications/kokoro-studio.desktop &lt;&lt; 'EOF'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Kokoro Audiobook Studio
+Comment=Convert text files to audiobook WAV using Kokoro TTS
+Exec=cosmic-term -e bash -c 'cd $HOME &amp;&amp; ~/.local/bin/kokoro-tools/kokoro-studio; exec bash'
+Icon=audio-x-generic
+Terminal=false
+Categories=AudioVideo;Audio;
+Keywords=kokoro;audiobook;tts;text;speech;
+EOF
+update-desktop-database ~/.local/share/applications</pre>
+
+    <div class="callout warn">
+      <strong>COSMIC / Pop!_OS specific:</strong> This launcher uses <code>cosmic-term</code>, the default terminal on Pop!_OS. For other desktop environments replace <code>cosmic-term -e</code> with your terminal's equivalent — e.g. <code>xterm -e</code>, <code>xfce4-terminal -e</code>, or <code>konsole -e</code>.
+    </div>
+
+    <h3>How it works</h3>
+    <p>The launcher opens a terminal window, activates the Kokoro virtual environment, and starts the studio from your home directory. Your browser opens automatically to <code>http://localhost:7891</code>. Use the <strong>📁 Browse</strong> button in the Text Files panel to navigate to your project folder — no terminal typing required.</p>
+
+    <h3>Keeping the execute permission</h3>
+    <p>Browser and file manager downloads strip the execute bit from files on Linux. Any time you copy a new version of <code>kokoro-studio</code> to the tools folder, run:</p>
+    <pre>chmod +x ~/.local/bin/kokoro-tools/kokoro-studio</pre>
+    <p>The desktop launcher will silently fail with a "Permission denied" error if this step is skipped after an update.</p>
+
+    <h3>Per-project launchers (optional)</h3>
+    <p>If you work on multiple audiobook series, you can create separate launchers that open directly in each series parent folder:</p>
+    <pre>cat > ~/.local/share/applications/kokoro-myseries.desktop &lt;&lt; 'EOF'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Kokoro — My Series Name
+Exec=cosmic-term -e bash -c 'cd "/home/ladmin/Documents/AI_Books/MySeries" &amp;&amp; ~/.local/bin/kokoro-tools/kokoro-studio; exec bash'
+Icon=audio-x-generic
+Terminal=false
+Categories=AudioVideo;Audio;
+EOF
+update-desktop-database ~/.local/share/applications</pre>
+  </section>
+
   <!-- 5. Using the Studio -->
   <section id="usage">
     <div class="section-eyebrow">Section 5</div>
     <h2>Using the Studio</h2>
 
     <h3>Starting the studio</h3>
+    <p>There are two ways to start the studio:</p>
+    <p><strong>From the terminal</strong> — navigate to your project folder and run:</p>
     <pre>cd ~/your-audiobook-project
 kokoro-studio</pre>
-    <p>This activates the Kokoro virtual environment, starts <code>serve.py</code> on port 7891, and opens <code>http://localhost:7891</code> in your default browser. The terminal window that launched the studio must remain open while you work — closing it stops the server.</p>
-    <p>The <strong>Kokoro Audiobook Studio</strong> header is pinned to the top of the page and stays visible as you scroll down through the panels. A <strong>? Help</strong> link in the header opens this guide in a new tab at any time.</p>
+    <p><strong>From the app launcher</strong> — click Kokoro Audiobook Studio in your application menu. The studio opens in your home directory; use the <strong>📁 Browse</strong> button to navigate to your project folder.</p>
+    <p>Either way, the studio activates the Kokoro virtual environment, starts <code>serve.py</code> on port 7891, and opens <code>http://localhost:7891</code> in your browser. The terminal window must remain open while you work — closing it stops the server.</p>
+    <p>The <strong>Kokoro Audiobook Studio</strong> header is pinned to the top of the page. A <strong>? Help</strong> link in the header opens this guide in a new tab at any time.</p>
 
     <h3 id="usage-audition">Voice Audition panel</h3>
     <p>Click <strong>Voice Audition ▶ show</strong> to expand. Click any <strong>▶</strong> button next to a voice card to play its sample. Click <strong>■</strong> or click again to stop. Toggle between <strong>Native language</strong> and <strong>Accented English</strong> to hear non-English voices either in their native tongue or speaking English with their accent. The <strong>Accent</strong> and <strong>Gender</strong> filter rows are independent — gender selection persists as you switch accents. Click <strong>Use</strong> on any card to set that voice as the active global voice.</p>
@@ -541,8 +593,12 @@ kokoro-studio</pre>
     <p>The Text Files panel lists every <code>.txt</code> file found in the current working directory, along with a line count and word count per file (blank lines excluded). The table populates automatically on launch and can be refreshed with <strong>⟳ Refresh</strong> if files are added mid-session.</p>
 
     <h4 style="margin:16px 0 8px; font-size:14px; color:var(--text);">Switching folders without restarting</h4>
-    <p>The <strong>Folder</strong> bar at the top of the Text Files panel lets you point the studio at a different directory without killing and relaunching the server. Type a path and press <strong>⇄ Switch</strong> or hit Enter. Both absolute and relative paths are supported:</p>
-    <pre># Relative to the current folder — most convenient when books share a parent
+    <p>The <strong>Folder</strong> bar at the top of the Text Files panel lets you point the studio at a different directory without killing and relaunching the server. There are two ways to switch:</p>
+
+    <p><strong>Visual folder browser</strong> — click the <strong>📁 Browse</strong> button to open a folder picker modal. Navigate by clicking folders; use <strong>↩ ..</strong> to go up a level. Folders containing <code>.txt</code> files show a green badge with the file count so you can quickly identify project folders. Click <strong>Select This Folder</strong> to switch immediately.</p>
+
+    <p><strong>Manual path entry</strong> — type a path directly into the Folder input and press <strong>⇄ Switch</strong> or hit Enter:</p>
+    <pre># Relative to the current folder
 ../Book2
 ../Book3/chapters
 
@@ -551,9 +607,9 @@ kokoro-studio</pre>
 
 # Home-relative
 ~/Documents/AI_Books/Book5</pre>
-    <p>After a successful switch the file table clears and reloads with the new folder's contents. All Settings (voice, speed, output folder) are preserved across switches. The resolved absolute path is shown in the status area next to the Switch button.</p>
+    <p>After a successful switch the file table clears and reloads with the new folder's contents. All Settings are preserved. The resolved absolute path is shown in the status area.</p>
     <div class="callout info">
-      <strong>Relative paths</strong> resolve against the <em>current</em> working directory, not the startup directory. Each switch is relative to wherever you currently are — so <code>../Book3</code> after switching to <code>../Book2</code> correctly lands in <code>Book3</code>, not back in the original folder.
+      <strong>Relative paths</strong> resolve against the <em>current</em> working directory, not the startup directory. Each switch is relative to wherever you currently are — so <code>../Book3</code> after switching to <code>../Book2</code> correctly lands in <code>Book3</code>.
     </div>
 
     <h4 style="margin:16px 0 8px; font-size:14px; color:var(--text);">Converting chapters</h4>
@@ -616,6 +672,15 @@ Python : /home/yourname/Downloads/kokoro/env1/bin/python3</pre>
       <li>Nothing else is using port 7891 (<code>lsof -i :7891</code>)</li>
       <li>You opened the browser <em>after</em> the server started (the launcher waits 1 second; on slow machines you may need to refresh)</li>
     </ul>
+
+    <h3>Desktop launcher fails silently or shows "Permission denied"</h3>
+    <div class="callout alert">
+      <strong>Symptom:</strong> Clicking the app launcher does nothing, or a terminal flashes open and closes immediately.
+    </div>
+    <p><strong>Most likely cause:</strong> The execute bit was stripped from <code>kokoro-studio</code> when the file was downloaded or copied. Fix with:</p>
+    <pre>chmod +x ~/.local/bin/kokoro-tools/kokoro-studio</pre>
+    <p>This must be re-run every time you copy a new version of the launcher file.</p>
+    <p><strong>Wrong terminal emulator:</strong> The <code>.desktop</code> file uses <code>cosmic-term</code> which is specific to Pop!_OS / COSMIC. On other desktop environments, edit the <code>Exec=</code> line to use your installed terminal — check with <code>which xterm konsole xfce4-terminal</code>.</p>
 
     <h3>Folder switch shows "Path does not exist" for a valid path</h3>
     <div class="callout alert">

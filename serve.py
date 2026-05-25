@@ -94,6 +94,44 @@ class Handler(http.server.BaseHTTPRequestHandler):
         elif path == "/user_guide.html":
             self._serve_file(SCRIPT_DIR / "user_guide.html", "text/html; charset=utf-8")
 
+        elif path == "/api/browse":
+            qs      = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            browse  = qs.get("path", [str(WORK_DIR["path"])])[0]
+            try:
+                browse_path = Path(os.path.expanduser(browse)).resolve()
+                if not browse_path.exists() or not browse_path.is_dir():
+                    self._json({"ok": False, "error": "Invalid path"}, 400)
+                    return
+                entries = []
+                # Always include parent unless we are at filesystem root
+                if browse_path.parent != browse_path:
+                    entries.append({
+                        "name": "..",
+                        "path": str(browse_path.parent),
+                        "type": "parent"
+                    })
+                for item in sorted(browse_path.iterdir(), key=lambda x: x.name.lower()):
+                    if item.is_dir() and not item.name.startswith("."):
+                        # Count txt files to help user identify project folders
+                        try:
+                            txt_count = sum(1 for f in item.iterdir()
+                                          if f.is_file() and f.suffix.lower() == ".txt")
+                        except PermissionError:
+                            txt_count = 0
+                        entries.append({
+                            "name": item.name,
+                            "path": str(item),
+                            "type": "dir",
+                            "txt_count": txt_count
+                        })
+                self._json({
+                    "ok": True,
+                    "current": str(browse_path),
+                    "entries": entries
+                })
+            except Exception as e:
+                self._json({"ok": False, "error": str(e)}, 500)
+
         elif path == "/api/workdir":
             self._json({"path": str(WORK_DIR["path"])})
 
@@ -590,8 +628,7 @@ voice_arg = torch.load(r"{pt}", weights_only=True)
             "print('PT saved')\n"
             "pipeline = KPipeline(lang_code='a')\n"
             "text = 'Hello, this is my custom narrative voice. "
-            "My voice is a blend of two others to shape a tone that feels unique to my character."
-            "When you mix different voices together, you can fine‑tune the sound until it matches the personality you have in mind.'\n"
+            "I created this blend to match my own speaking style.'\n"
             "chunks = []\n"
             "for gs, ps, audio in pipeline(text, voice=blended):\n"
             "    chunks.append(audio)\n"

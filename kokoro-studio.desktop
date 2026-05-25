@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Kokoro Audiobook Studio
+Comment=Convert text files to audiobook WAV using Kokoro TTS
+Exec=cosmic-term -e bash -c 'cd $HOME && ~/.local/bin/kokoro-tools/kokoro-studio; exec bash'
+Icon=audio-card
+Terminal=false
+Categories=AudioVideo;Audio;
+Keywords=kokoro;audiobook;tts;text;speech;

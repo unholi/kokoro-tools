@@ -6,34 +6,6 @@
 
 ---
 
-## Quick Personal Note
-
-I am not a software developer, nor do I pretend to be one. I am, however, tech savvy enough to use the tools available to me to generate a simple solution for a specific need I had—and this tool is the result. I make absolutely no claims about this tool beyond the fact that it works for me on my workstation, with the results shown below. I’ve also installed it on other systems in my home lab running Pop!_OS 24.04, and it worked as expected, with the exception that run times varied significantly due to hardware differences.
-
-As for the software itself, I can open the files in vi and get a general idea of what each file is doing, but beyond that, this is magic to me. I relied heavily on Claude Sonnet 4.6 to generate this tool and eventually reached a point where I felt confident enough to share it with others. Is it perfect? No. Could things be improved? Probably. But as I said, I’m not a software developer—this simply met my specific need.
-
-I make zero guarantees that this software will work outside my own environment. Use it at your own discretion. If things completely fall apart on your end, Claude Pro [https://claude.ai/upgrade] is relatively inexpensive for a one‑year subscription.
-
-**System Info**
-```
-CPU: AMD Ryzen 7 5700X 8-Core Processor
-Cores: 16 logical / 8 physical per socket
-RAM: 125Gi total / 105Gi available
-
-  Voice Blender (blend + generate sample WAV)  :  ~15–20 seconds
-  Sample Audio (~500 word paste)               :  ~30–45 seconds
-  Single chapter (~100 lines / ~1,600 words)   :  ~60–90 seconds
-  Full chapter  (~530 lines / ~14,000 words)   :  ~17–18 minutes
-
-On this hardware, performance scales roughly linearly about 1.5 seconds per 100 words.
-```
-
-Processing is CPU-bound. A GPU-accelerated PyTorch install will
-significantly reduce generation times, particularly for long chapters.
-
----
-
-
 ## What's in this package
 
 | File | Required | Purpose |
@@ -48,6 +20,7 @@ significantly reduce generation times, particularly for long chapters.
 | `kokoro_audiobook.py` | Optional | Standalone CLI batch converter (no UI needed) |
 | `user_guide.html` | Optional | Full in-app user guide (opens from the ? Help button) |
 | `README.md` | Optional | This file |
+| `kokoro-studio.desktop` | Optional | Desktop app launcher for COSMIC / Pop!_OS |
 
 ---
 
@@ -118,6 +91,34 @@ The server starts, your browser opens to **http://localhost:7891**, and the inte
 
 ---
 
+### Step 5b — Add a desktop app launcher (optional, Pop!\_OS / COSMIC)
+
+To launch the studio from your application menu without opening a terminal first:
+
+```bash
+cat > ~/.local/share/applications/kokoro-studio.desktop << 'EOF'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Kokoro Audiobook Studio
+Comment=Convert text files to audiobook WAV using Kokoro TTS
+Exec=cosmic-term -e bash -c 'cd $HOME && ~/.local/bin/kokoro-tools/kokoro-studio; exec bash'
+Icon=audio-x-generic
+Terminal=false
+Categories=AudioVideo;Audio;
+Keywords=kokoro;audiobook;tts;text;speech;
+EOF
+update-desktop-database ~/.local/share/applications
+```
+
+> ⚠️ **COSMIC / Pop!_OS specific:** This launcher uses `cosmic-term`, the default terminal on Pop!_OS. If you use a different desktop environment, replace `cosmic-term -e` with your terminal's equivalent — e.g. `xterm -e`, `xfce4-terminal -e`, or `konsole -e`.
+
+The launcher opens the studio in your home directory. Use the **📁 Browse** button in the Text Files panel to navigate to your project folder — no terminal needed.
+
+> ℹ️ **Note:** Any time you copy a new version of `kokoro-studio` to the tools folder, re-run `chmod +x ~/.local/bin/kokoro-tools/kokoro-studio` as file downloads strip the execute permission.
+
+---
+
 ### Step 6 — Generate voice samples (first time only)
 
 The Voice Audition panel plays pre-generated WAV samples for each voice. Open **Voice Audition** in the UI and click **⚙ Native language** and/or **⚙ Accented English** to generate them. This takes several minutes and only needs to be done once — samples are saved inside `kokoro-tools/` and reused on every future launch.
@@ -162,7 +163,13 @@ sed -i "s/\u2018/'/g; s/\u2019/'/g; s/\u201C/\"/g; s/\u201D/\"/g" *.txt
 
 ## Switching Project Folders Mid-Session
 
-You do not need to restart the studio to work on a different book or chapter folder. Use the **Folder** bar at the top of the Text Files panel:
+You do not need to restart the studio to work on a different book or chapter folder. Use the **Folder** bar at the top of the Text Files panel.
+
+**Option A — Browse visually:**
+Click **📁 Browse** to open the folder picker. Navigate the directory tree by clicking folders, go up a level with **↩ ..**, and click **Select This Folder** when you find the right one. Folders containing `.txt` files show a green badge with the count so you can spot project folders instantly.
+
+**Option B — Type a path:**
+Type directly into the Folder input and press **⇄ Switch** or Enter. Both absolute and relative paths are supported:
 
 ```
 # Relative to your current folder
@@ -173,7 +180,7 @@ You do not need to restart the studio to work on a different book or chapter fol
 /home/ladmin/Documents/AI_Books/Book4
 ```
 
-Type the path and press **⇄ Switch** or hit Enter. The file table reloads immediately with the new folder's contents. All Settings are preserved. Relative paths resolve against the **current** directory, not the startup directory — so each switch is relative to wherever you currently are.
+The file table reloads immediately after switching. All Settings are preserved. Relative paths resolve against the **current** working directory, not the startup directory.
 
 ---
 
@@ -210,7 +217,7 @@ The studio interface is divided into collapsible panels (all accessible from the
 - **Voice Blender** — create custom blended voices saved as reusable `.pt` tensors
 - **Per-file voice assignment** — different voices for different chapters in one launch
 - **Sequential batch processing** — multi-voice runs process one voice group at a time, keeping your machine responsive
-- **Folder switching** — change source directories mid-session without restarting; supports relative (`../Book2`) and absolute paths
+- **Folder switching** — change source directories mid-session without restarting; visual folder browser with `.txt` file count badges, or type relative/absolute paths directly
 - **Sample Audio panel** — quick spoken test of any text before committing to a full run
 - **Session log** — append-only `kokoro_session.log` records every conversion with voice, speed, and duration
 - **Fully offline** after initial model download

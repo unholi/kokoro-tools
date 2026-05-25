@@ -251,6 +251,72 @@
   #nowPlaying audio { flex:1; height:28px; min-width:0; }
   audio { accent-color:var(--accent); }
 
+  /* folder browser modal */
+  .fb-overlay {
+    display:none; position:fixed; inset:0;
+    background:rgba(0,0,0,.65); backdrop-filter:blur(4px);
+    z-index:200; align-items:center; justify-content:center;
+  }
+  .fb-overlay.open { display:flex; }
+  .fb-modal {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:12px; width:min(600px, 92vw); max-height:70vh;
+    display:flex; flex-direction:column; overflow:hidden;
+    box-shadow:0 24px 64px rgba(0,0,0,.6);
+  }
+  .fb-header {
+    display:flex; align-items:center; gap:10px;
+    padding:14px 18px; border-bottom:1px solid var(--border);
+    background:var(--surface2); flex-shrink:0;
+  }
+  .fb-header .fb-path {
+    font-family:var(--font-mono); font-size:12px;
+    color:var(--accent2); flex:1; overflow:hidden;
+    text-overflow:ellipsis; white-space:nowrap;
+  }
+  .fb-header button {
+    font-family:var(--font-mono); font-size:11px;
+    padding:4px 10px; border-radius:5px;
+    border:1px solid var(--border); background:var(--surface);
+    color:var(--muted); cursor:pointer;
+    transition:border-color .15s, color .15s;
+  }
+  .fb-header button:hover { border-color:var(--accent); color:var(--accent); }
+  .fb-list { overflow-y:auto; flex:1; }
+  .fb-item {
+    display:flex; align-items:center; gap:12px;
+    padding:10px 18px; cursor:pointer;
+    border-bottom:1px solid rgba(255,255,255,.04);
+    transition:background .12s;
+  }
+  .fb-item:hover { background:var(--surface2); }
+  .fb-item.fb-parent { color:var(--muted); }
+  .fb-item .fb-icon { font-size:16px; flex-shrink:0; }
+  .fb-item .fb-name { font-family:var(--font-mono); font-size:13px; flex:1; }
+  .fb-item .fb-badge {
+    font-size:10px; padding:2px 6px; border-radius:3px;
+    background:rgba(105,219,124,.12); color:var(--success);
+    flex-shrink:0;
+  }
+  .fb-footer {
+    padding:12px 18px; border-top:1px solid var(--border);
+    background:var(--surface2); display:flex;
+    align-items:center; gap:10px; flex-shrink:0;
+  }
+  .fb-footer .fb-selected {
+    font-family:var(--font-mono); font-size:12px;
+    color:var(--accent); flex:1; overflow:hidden;
+    text-overflow:ellipsis; white-space:nowrap;
+  }
+  .fb-select-btn {
+    font-family:var(--font-head); font-size:13px; font-weight:700;
+    padding:8px 22px; border-radius:7px; border:none;
+    background:var(--accent); color:var(--bg); cursor:pointer;
+    transition:box-shadow .15s;
+  }
+  .fb-select-btn:hover { box-shadow:0 0 16px rgba(232,197,71,.4); }
+  .fb-select-btn:disabled { opacity:.35; cursor:not-allowed; }
+
   /* launch bar */
   .launch-bar { position:sticky; bottom:0; z-index:10; background:rgba(13,15,20,.93); backdrop-filter:blur(12px); border-top:1px solid var(--border); padding:16px 24px; display:flex; align-items:center; gap:16px; margin:0 -24px; }
   .launch-summary { font-size:12px; color:var(--muted); flex:1; }
@@ -477,11 +543,11 @@
   </div>
 
   <!-- ══ SAMPLE AUDIO ══ -->
-  <details id="sampleAudioDetails" style="margin-bottom:20px;">
+  <details id="sampleAudioDetails" open style="margin-bottom:20px;">
     <summary style="list-style:none; outline:none;">
       <div class="section-label" style="margin-bottom:0; cursor:pointer; user-select:none;">
         Sample Audio
-        <span id="sampleAudioChevron" style="font-size:10px; color:var(--muted); margin-left:6px;">▶ show</span>
+        <span id="sampleAudioChevron" style="font-size:10px; color:var(--muted); margin-left:6px;">▾ hide</span>
       </div>
     </summary>
 
@@ -566,6 +632,10 @@
               style="border-color:var(--accent2); color:var(--accent2);">
         ⇄ Switch
       </button>
+      <button class="btn-sm" onclick="fbOpen()"
+              style="border-color:var(--accent); color:var(--accent);">
+        📁 Browse
+      </button>
       <span id="workDirStatus" style="font-size:11px; color:var(--muted);
             white-space:nowrap;"></span>
     </div>
@@ -596,6 +666,24 @@
   </div>
 
 </div>
+<!-- folder browser modal -->
+<div class="fb-overlay" id="fbOverlay" onclick="fbOverlayClick(event)">
+  <div class="fb-modal">
+    <div class="fb-header">
+      <span class="fb-path" id="fbCurrentPath">/</span>
+      <button onclick="fbClose()">✕ Cancel</button>
+    </div>
+    <div class="fb-list" id="fbList">
+      <!-- populated by JS -->
+    </div>
+    <div class="fb-footer">
+      <span class="fb-selected" id="fbSelectedLabel">No folder selected</span>
+      <button class="fb-select-btn" id="fbSelectBtn"
+              onclick="fbConfirm()" disabled>Select This Folder</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -1160,6 +1248,146 @@ async function generateSamples(mode) {
 // ═══════════════════════════════════════════
 // VOICE BLENDER
 // ═══════════════════════════════════════════
+// ═══════════════════════════════════════════
+// FOLDER BROWSER
+// ═══════════════════════════════════════════
+let fbSelectedPath = null;
+
+async function fbOpen() {
+  // Start browsing from current working directory
+  try {
+    const res  = await fetch(`${API}/api/workdir`);
+    const data = await res.json();
+    fbSelectedPath = null;
+    document.getElementById("fbSelectBtn").disabled = true;
+    document.getElementById("fbSelectedLabel").textContent = "No folder selected";
+    document.getElementById("fbOverlay").classList.add("open");
+    await fbNavigate(data.path);
+  } catch(e) {
+    toast("Cannot open browser — is serve.py running?", "err");
+  }
+}
+
+function fbClose() {
+  document.getElementById("fbOverlay").classList.remove("open");
+}
+
+function fbOverlayClick(e) {
+  if (e.target === document.getElementById("fbOverlay")) fbClose();
+}
+
+async function fbNavigate(path) {
+  const list = document.getElementById("fbList");
+  list.innerHTML = `<div style="padding:20px;text-align:center;color:var(--muted);
+                    font-size:12px;">Loading…</div>`;
+  document.getElementById("fbCurrentPath").textContent = path;
+
+  try {
+    const res  = await fetch(`${API}/api/browse?path=${encodeURIComponent(path)}`);
+    const data = await res.json();
+    if (!data.ok) {
+      list.innerHTML = `<div style="padding:20px;color:var(--danger);font-size:12px;">
+                        ✗ ${data.error}</div>`;
+      return;
+    }
+
+    list.innerHTML = "";
+    if (!data.entries.length) {
+      list.innerHTML = `<div style="padding:20px;text-align:center;color:var(--muted);
+                        font-size:12px;">No subfolders found</div>`;
+      return;
+    }
+
+    data.entries.forEach(entry => {
+      const row = document.createElement("div");
+      row.className = "fb-item" + (entry.type === "parent" ? " fb-parent" : "");
+
+      const icon = entry.type === "parent" ? "↩" : "📁";
+      const badge = (entry.type === "dir" && entry.txt_count > 0)
+        ? `<span class="fb-badge">${entry.txt_count} .txt</span>` : "";
+
+      row.innerHTML = `<span class="fb-icon">${icon}</span>
+                       <span class="fb-name">${entry.name}</span>
+                       ${badge}`;
+
+      row.addEventListener("click", () => {
+        if (entry.type === "parent") {
+          // Navigate up — don't auto-select parent
+          fbNavigate(entry.path);
+        } else {
+          // Single click navigates into the folder
+          fbNavigate(entry.path);
+          // Also mark it as selected
+          fbSelectPath(entry.path);
+        }
+      });
+
+      list.appendChild(row);
+    });
+
+  } catch(e) {
+    list.innerHTML = `<div style="padding:20px;color:var(--danger);font-size:12px;">
+                      ✗ ${e.message}</div>`;
+  }
+}
+
+function fbSelectPath(path) {
+  fbSelectedPath = path;
+  const short = path.split("/").slice(-2).join("/");
+  document.getElementById("fbSelectedLabel").textContent = "…/" + short;
+  document.getElementById("fbSelectBtn").disabled = false;
+  // Highlight selected row
+  document.querySelectorAll(".fb-item").forEach(r => {
+    r.style.background = r.querySelector(".fb-name")?.textContent === path.split("/").pop()
+      ? "rgba(232,197,71,.08)" : "";
+  });
+}
+
+async function fbConfirm() {
+  if (!fbSelectedPath) return;
+  const path = fbSelectedPath;
+  fbClose();
+  fbSelectedPath = null;
+  // Show the resolved path in the status bar
+  const status = document.getElementById("workDirStatus");
+  const input  = document.getElementById("workDirInput");
+  status.textContent = "Switching…";
+  status.style.color = "var(--muted)";
+  try {
+    const res  = await fetch(`${API}/api/set-workdir`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path })
+    });
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); }
+    catch(e) {
+      status.textContent = `✗ Server error: ${text.slice(0,120)}`;
+      status.style.color = "var(--danger)";
+      toast("Switch failed — check serve.py console", "err");
+      return;
+    }
+    if (data.ok) {
+      input.value       = "";
+      input.placeholder = data.resolved;
+      status.textContent = `✓ ${data.resolved}`;
+      status.style.color = "var(--success)";
+      toast(`Switched to ${data.resolved}`, "ok");
+      files = [];
+      await refreshFiles();
+    } else {
+      status.textContent = `✗ ${data.error}`;
+      status.style.color = "var(--danger)";
+      toast(`Switch failed: ${data.error}`, "err");
+    }
+  } catch(e) {
+    status.textContent = `✗ ${e.message}`;
+    status.style.color = "var(--danger)";
+    toast("Switch failed: " + e.message, "err");
+  }
+}
+
 // ═══════════════════════════════════════════
 // SAMPLE AUDIO
 // ═══════════════════════════════════════════
