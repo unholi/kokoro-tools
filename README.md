@@ -6,6 +6,33 @@
 
 ---
 
+## Quick Personal Note
+
+I am not a software developer, nor do I pretend to be one. I am, however, savvy enough to use the tools available to me to generate a simple solution for a specific need I had—and this tool is the result. I make absolutely no claims about this tool beyond the fact that it works for me on my workstation, with the results shown below. I’ve also installed it on other systems in my home lab running Pop!_OS 24.04, and it worked as expected, with the exception that run times varied significantly due to hardware differences.
+
+As for the software itself, I can open the files in vi and get a general idea of what each file is doing, but beyond that, this is magic to me. I relied heavily on Claude Sonnet 4.6 to generate this tool and eventually reached a point where I felt confident enough to share it with others. Is it perfect? No. Could things be improved? Probably. But as I said, I’m not a software developer—this simply met my specific need.
+
+I make zero guarantees that this software will work outside my own environment. Use it at your own discretion. If things completely fall apart on your end, Claude Pro [https://claude.ai/upgrade] is relatively inexpensive for a one‑year subscription.
+
+**System Info**
+```
+CPU: AMD Ryzen 7 5700X 8-Core Processor
+Cores: 16 logical / 8 physical per socket
+RAM: 125Gi total / 105Gi available
+
+  Voice Blender (blend + generate sample WAV)  :  ~15–20 seconds
+  Sample Audio (~500 word paste)               :  ~30–45 seconds
+  Single chapter (~100 lines / ~1,600 words)   :  ~60–90 seconds
+  Full chapter  (~530 lines / ~14,000 words)   :  ~17–18 minutes
+
+On this hardware, performance scales roughly linearly about 1.5 seconds per 100 words.
+```
+
+Processing is CPU-bound. A GPU-accelerated PyTorch install will
+significantly reduce generation times, particularly for long chapters.
+
+---
+
 ## What's in this package
 
 | File | Required | Purpose |
